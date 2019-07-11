@@ -31,6 +31,10 @@ module.exports = {
 			],
 			"newlines-between": "always"
 		}],
-		"quote-props": ["error", "as-needed"]
+		"quote-props": ["error", "as-needed"],
+
+		// Unresolved modules might exist due to special environments such
+		// as PaaS environments or when developing editor extensions
+		"import/no-unresolved": "off"
 	}
 }
