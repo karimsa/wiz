@@ -2,10 +2,13 @@ module.exports = {
 	"extends": [
 		"standard",
 		"plugin:import/errors",
-		"prettier",
+		"plugin:prettier/recommended",
 		"prettier/standard"
 	],
 	"rules": {
+		"prettier/prettier": ["error", require('./.prettierrc.js'), {
+			usePrettierrc: false,
+		}],
 		"no-tabs": "off",
 		"indent": "off",
 		"no-mixed-spaces-and-tabs": "off",
