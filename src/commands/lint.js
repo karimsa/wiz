@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // @file: lint.js
 // @description: Check source files for formatting issues & quality
 // @copyright: 2019-present Karim Alibhai.
@@ -76,8 +74,8 @@ async function loadCache(argv) {
 		return cache
 	} catch (err) {
 		return initCache()
-		}
 	}
+}
 
 async function updateCache(cache) {
 	await writeFile(cacheLocation, JSON.stringify(cache))
@@ -176,6 +174,7 @@ async function lintAllFiles(argv) {
 		baseConfig: eslintOptions,
 		cwd: __dirname,
 		fix: true,
+		allowInlineConfig: false,
 		useEslintrc: false,
 	})
 	const goals = []
