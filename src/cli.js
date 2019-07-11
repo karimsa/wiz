@@ -90,25 +90,33 @@ async function main() {
 
 	await setup()
 
-	console.time(argv.input[0])
 	switch (argv.input[0]) {
 		case 'lint':
-			await lintCommand(argv)
-			break
+			return lintCommand(argv)
 
 		case 'build':
-			await lintCommand(argv)
-			await buildCommand(argv)
-			break
+			if ((await lintCommand(argv)) === false) {
+				return false
+			}
+			return buildCommand(argv)
 
 		default:
 			console.error(`Unrecognized command: '${argv.input[0]}'`)
 			argv.showHelp()
 	}
-	console.timeEnd(argv.input[0])
 }
 
-main().catch(err => {
-	console.error(err.stack)
-	process.exit(1)
-})
+console.time(argv.input[0])
+main()
+	.then(success => {
+		console.timeEnd(argv.input[0])
+
+		if (!success) {
+			process.emit('beforeExit')
+			process.exit(1)
+		}
+	})
+	.catch(err => {
+		console.error(err.stack)
+		process.exit(1)
+	})

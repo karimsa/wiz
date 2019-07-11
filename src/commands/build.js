@@ -25,18 +25,22 @@ export const buildFlags = {
 }
 
 export async function buildCommand(argv) {
-	if (argv.input.length > 2) {
-		throw new Error(`Build must specify at most one entrypoint to compile`)
+	if (argv.input.length !== 2) {
+		throw new Error(`Build must specify exactly one entrypoint to compile`)
 	}
 
 	const srcDirectory = path.join(process.cwd(), 'src')
-	const inputFile = argv.input[1]
-		? argv.input[1].startsWith('/')
-			? argv.input[1]
-			: path.join(process.cwd(), argv.input[1])
-		: path.join(process.cwd(), 'src/index.js')
-	const outputFile = path.resolve(argv.output || './index.dist.js')
+	const inputFile = argv.input[1].startsWith('/')
+		? argv.input[1]
+		: path.join(process.cwd(), argv.input[1])
+	const outputFile = path.join(
+		process.cwd(),
+		path.parse(inputFile).name + '.dist.js',
+	)
 
+	if (inputFile.endsWith('index.js')) {
+		throw new Error(`The filename 'index.js' is not allowed for entrypoints`)
+	}
 	if (
 		!inputFile.startsWith(srcDirectory) ||
 		!inputFile.endsWith('.js') ||
