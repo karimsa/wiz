@@ -25,7 +25,35 @@ const isDevelopmentEnv =
 	(process.env.NODE_ENV || 'development') === 'development'
 const cacheLocation = path.join(process.cwd(), '.prop', 'lintcache.json')
 
-async function loadCache() {
+export const lintFlags = {
+	ignoreCache: {
+		type: 'boolean',
+	},
+}
+
+function initCache() {
+	return {
+		version,
+		eslint: {},
+		readdir: {},
+	}
+}
+
+async function loadCache(argv) {
+	if (argv.flags.ignoreCache) {
+		console.warn(`Warning: Ignoring cache`)
+		return initCache()
+	}
+	if (
+		// automatically ignore caching for non-development environments
+		(process.env.NODE_ENV !== undefined && process.env.NODE_ENV !== 'development') ||
+
+		// automatically ignore caching for CI environments
+		process.env.CI === 'true'
+	) {
+		return initCache()
+	}
+
 	try {
 		const cacheContents = await readFile(cacheLocation)
 		const cache = JSON.parse(cacheContents)
@@ -34,13 +62,9 @@ async function loadCache() {
 		}
 		return cache
 	} catch (err) {
-		return {
-			version,
-			eslint: {},
-			readdir: {},
+		return initCache()
 		}
 	}
-}
 
 async function updateCache(cache) {
 	await writeFile(cacheLocation, JSON.stringify(cache))
@@ -129,8 +153,11 @@ async function lintFile({ cache, engine, file, mtime }) {
 	return fileReport
 }
 
-async function lintAllFiles() {
-	const cache = await loadCache()
+async function lintAllFiles(argv) {
+	performance.mark('startCacheLoad')
+	const cache = await loadCache(argv)
+	performance.mark('endCacheLoad')
+	performance.measure('load cache', 'startCacheLoad', 'endCacheLoad')
 
 	const engine = new eslint.CLIEngine({
 		baseConfig: eslintOptions,
@@ -173,8 +200,8 @@ async function lintAllFiles() {
 	return reports
 }
 
-export async function lintCommand() {
-	const allResults = await lintAllFiles()
+export async function lintCommand(argv) {
+	const allResults = await lintAllFiles(argv)
 	const report = allResults.reduce(
 		(report, fileResults) => {
 			fileResults.results.forEach(result => {

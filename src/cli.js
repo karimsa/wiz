@@ -8,7 +8,7 @@ import meow from 'meow'
 import Table from 'cli-table'
 import ms from 'ms'
 
-import { lintCommand } from './commands/lint'
+import { lintCommand, lintFlags } from './commands/lint'
 
 const argv = meow(
 	`
@@ -28,18 +28,12 @@ const argv = meow(
 `,
 	{
 		flags: {
-			help: {
-				type: 'boolean',
-				alias: 'h',
-			},
-			version: {
-				type: 'boolean',
-				alias: 'v',
-			},
 			debug: {
 				type: 'boolean',
 				alias: 'd',
 			},
+
+			...lintFlags,
 		},
 	},
 )
@@ -86,12 +80,6 @@ if (argv.flags.debug) {
 }
 
 async function main() {
-	if (argv.flags.help || argv.input.length === 0) {
-		argv.showHelp()
-	} else if (argv.flags.version) {
-		argv.showVersion()
-	}
-
 	console.time(argv.input[0])
 	switch (argv.input[0]) {
 		case 'lint':
