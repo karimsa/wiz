@@ -1,0 +1,8 @@
+{
+	"editor.codeActionsOnSave": {
+		"source.fixAll.tslint": true
+	},
+	"zenMode.hideLineNumbers": false,
+	"editor.formatOnSave": true,
+	"eslint.autoFixOnSave": true,
+}

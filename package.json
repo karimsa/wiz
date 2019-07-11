@@ -1,0 +1,41 @@
+{
+	"name": "@karimsa/prop",
+	"version": "0.0.0",
+	"bin": {
+		"prop": "./prop.sh"
+	},
+	"dependencies": {
+		"ansi-escapes": "^4.2.0",
+		"babel-plugin-macros": "^2.6.1",
+		"cli-table": "^0.3.1",
+		"fast-glob": "^3.0.4",
+		"jest": "^24.8.0",
+		"jest-worker": "^24.6.0",
+		"meow": "^5.0.0",
+		"parallel": "^1.2.0",
+		"rollup": "^1.16.7",
+		"rollup-plugin-babel": "^4.3.3"
+	},
+	"scripts": {
+		"lint": "eslint src/**/*.js",
+		"pretest": "npm run lint",
+		"build": "babel src -d dist",
+		"watch": "npm run build -- -w"
+	},
+	"main": "dist/index.js",
+	"devDependencies": {
+		"@babel/cli": "^7.5.0",
+		"@babel/core": "^7.5.4",
+		"@babel/preset-env": "^7.5.4",
+		"eslint": "^6.0.1",
+		"eslint-config-prettier": "^6.0.0",
+		"eslint-config-standard": "^12.0.0",
+		"eslint-plugin-import": "^2.18.0",
+		"eslint-plugin-node": "^9.1.0",
+		"eslint-plugin-prettier": "^3.1.0",
+		"eslint-plugin-promise": "^4.2.1",
+		"eslint-plugin-react": "^7.14.2",
+		"eslint-plugin-standard": "^4.0.0",
+		"prettier": "^1.18.2"
+	}
+}
