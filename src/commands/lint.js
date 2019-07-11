@@ -47,18 +47,6 @@ async function loadCache(argv) {
 	}
 
 	try {
-		await stat('./.prop')
-	} catch (err) {
-		await mkdir('./.prop')
-
-		const gitignore = (await readFile('.gitignore', 'utf8')).split(/\r?\n/g)
-		if (!gitignore.includes('.prop')) {
-			gitignore.push('.prop')
-			await writeFile('.gitignore', gitignore.join('\r\n'))
-		}
-	}
-
-	try {
 		const cacheContents = await readFile(cacheLocation)
 		const cache = JSON.parse(cacheContents)
 		if (!cache.eslint || !cache.readdir || cache.version !== version) {

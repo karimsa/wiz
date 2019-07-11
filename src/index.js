@@ -9,6 +9,7 @@ import meow from 'meow'
 import Table from 'cli-table'
 import ms from 'ms'
 
+import { setup } from './setup'
 import { lintCommand, lintFlags } from './commands/lint'
 import { buildCommand, buildFlags } from './commands/build'
 
@@ -86,6 +87,8 @@ async function main() {
 	if (argv.input.length === 0) {
 		argv.showHelp()
 	}
+
+	await setup()
 
 	console.time(argv.input[0])
 	switch (argv.input[0]) {
