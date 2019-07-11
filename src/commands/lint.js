@@ -174,6 +174,7 @@ async function lintAllFiles(argv) {
 
 	const engine = new eslint.CLIEngine({
 		baseConfig: eslintOptions,
+		cwd: __dirname,
 		fix: true,
 		useEslintrc: false,
 	})
