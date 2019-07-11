@@ -32,6 +32,12 @@ function initCache() {
 	}
 }
 
+function ttywrite(str) {
+	if (process.stdout.isTTY) {
+		process.stdout.write(str)
+	}
+}
+
 async function loadCache(argv) {
 	if (argv.flags.ignoreCache) {
 		console.warn(`Warning: Ignoring cache`)
@@ -118,7 +124,7 @@ async function lintFile({ cache, engine, file, mtime }) {
 	performance.mark('endReadFile')
 	performance.measure('file read', 'startReadFile', 'endReadFile')
 
-	process.stdout.write(`\r${ansi.eraseEndLine}${file}`)
+	ttywrite(`\r${ansi.eraseEndLine}${file}`)
 	performance.mark('startLint')
 	const fileReport = engine.executeOnText(source, filepath)
 	performance.mark('endLint')
@@ -129,7 +135,7 @@ async function lintFile({ cache, engine, file, mtime }) {
 		fileReport.results.length > 0 &&
 		Reflect.has(fileReport.results[0], 'output')
 	) {
-		console.log()
+		ttywrite('\n')
 		performance.mark('startWriteFile')
 		await writeFile(filepath, fileReport.results[0].output)
 		performance.mark('endWriteFile')
@@ -190,7 +196,7 @@ async function lintAllFiles(argv) {
 	performance.measure('file search', 'startFileSearch', 'endFileSearch')
 
 	const reports = await Promise.all(goals)
-	process.stdout.write(`\r${ansi.eraseEndLine}`)
+	ttywrite(`\r${ansi.eraseEndLine}`)
 	await updateCache(cache)
 	return reports
 }
@@ -229,6 +235,6 @@ export async function lintCommand(argv) {
 		performance.measure('lint report', 'startLintReport', 'endLintReport')
 
 		console.log(strReport)
-		return false
+		return true
 	}
 }
