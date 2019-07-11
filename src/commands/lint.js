@@ -38,8 +38,8 @@ async function loadCache(argv) {
 	}
 	if (
 		// automatically ignore caching for non-development environments
-		(process.env.NODE_ENV !== undefined && process.env.NODE_ENV !== 'development') ||
-
+		(process.env.NODE_ENV !== undefined &&
+			process.env.NODE_ENV !== 'development') ||
 		// automatically ignore caching for CI environments
 		process.env.CI === 'true'
 	) {
@@ -226,6 +226,8 @@ export async function lintCommand(argv) {
 		const strReport = stylish(report.results)
 		performance.mark('endLintReport')
 		performance.measure('lint report', 'startLintReport', 'endLintReport')
+
 		console.log(strReport)
+		return false
 	}
 }
