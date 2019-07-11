@@ -1,8 +1,8 @@
 {
 	"name": "@karimsa/wiz",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"scripts": {
-		"build": "./scripts/build.sh"		
+		"build": "./scripts/build.sh"
 	},
 	"bin": {
 		"wiz": "cli.dist.js"
