@@ -21,11 +21,18 @@ for ((i=0;i<5;i++)); do
 	echo ""
 	echo "build #$[i+1]:"
 	./cli.dist.js build src/cli.js
-	echo "cli.dist.js - `cat cli.dist.js | md5`"
-	cp "cli.dist.js" "${tmp}/cli.`cat cli.dist.js | md5`.js"
+
+	hash=""
+	if which md5 &>/dev/null; then
+		hash="`cat cli.dist.js | md5`"
+	else
+		hash="`cat cli.dist.js | md5sum | cut -d- -f1`"
+	fi
+
+	echo "cli.dist.js - $hash"
+	cp "cli.dist.js" "${tmp}/cli.${hash}.js"
 done
 
 echo ""
 echo "Build directory: $tmp"
 ls -lh "$tmp"
-
