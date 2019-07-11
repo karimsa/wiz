@@ -1,11 +1,11 @@
 {
-	"name": "@karimsa/prop",
+	"name": "@karimsa/wiz",
 	"version": "0.0.0",
 	"scripts": {
 		"build": "./scripts/build.sh"		
 	},
 	"bin": {
-		"prop": "index.dist.js"
+		"wiz": "cli.dist.js"
 	},
 	"dependencies": {
 		"@babel/core": "^7.5.4",

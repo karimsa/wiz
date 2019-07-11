@@ -64,6 +64,7 @@ export async function buildCommand(argv) {
 			rollupBabel({
 				minified: false,
 				babelrc: false,
+				comments: false,
 				plugins: [require.resolve('babel-plugin-macros')],
 				presets: [
 					[

@@ -1,15 +1,18 @@
 /**
- * @file src/setup-prop.js
+ * @file src/setup.js
  * @copyright Karim Alibhai. All rights reserved.
  */
 
+import * as path from 'path'
+
 import { stat, mkdir, readFile, writeFile } from './fs'
+import { mainDirectory } from './config'
 
 export async function setup() {
 	try {
-		await stat('./.prop')
+		await stat(mainDirectory)
 	} catch (err) {
-		await mkdir('./.prop')
+		await mkdir(mainDirectory)
 
 		try {
 			await stat('./.gitattributes')
@@ -25,9 +28,9 @@ export async function setup() {
 			const gitignore = (await readFile('.gitignore', 'utf8')).split(/\r?\n/g)
 			let gitignoreChanged = false
 
-			if (!gitignore.includes('.prop')) {
+			if (!gitignore.includes(path.basename(mainDirectory))) {
 				gitignoreChanged = true
-				gitignore.push('.prop')
+				gitignore.push(path.basename(mainDirectory))
 			}
 
 			if (!gitignore.includes('*.dist.js')) {
@@ -42,7 +45,12 @@ export async function setup() {
 			if (String(err).includes('ENOENT')) {
 				await writeFile(
 					'.gitignore',
-					['node_modules', '*.log', '*.dist.js', '.prop'].join('\r\n'),
+					[
+						'node_modules',
+						'*.log',
+						'*.dist.js',
+						path.basename(mainDirectory),
+					].join('\r\n'),
 				)
 			} else {
 				throw err

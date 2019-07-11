@@ -11,11 +11,12 @@ import * as ansi from 'ansi-escapes'
 
 import eslintOptions from '../../.eslintrc'
 import { version } from '../../package.json'
+import { mainDirectory } from '../config'
 import { readFile, writeFile, stat, readdir } from '../fs'
 
 const isDevelopmentEnv =
 	(process.env.NODE_ENV || 'development') === 'development'
-const cacheLocation = path.join(process.cwd(), '.prop', 'lintcache.json')
+const cacheLocation = path.join(mainDirectory, 'lintcache.json')
 
 export const lintFlags = {
 	ignoreCache: {

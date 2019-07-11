@@ -16,7 +16,7 @@ import { buildCommand, buildFlags } from './commands/build'
 const argv = meow(
 	`
     Usage
-        $ prop [command] [options]
+        $ wiz [command] [options]
     
     Commands
         lint    Check all your source files for code quality
@@ -26,7 +26,7 @@ const argv = meow(
     
     Options:
         -h, --help  	Print this help message
-        -v, --version   Print the current version of prop
+        -v, --version   Print the current version
         -d, --debug		Enable debug mode
 `,
 	{
@@ -95,8 +95,8 @@ async function main() {
 			return lintCommand(argv)
 
 		case 'build':
-			if ((await lintCommand(argv)) === false) {
-				return false
+			if (await lintCommand(argv)) {
+				return true
 			}
 			return buildCommand(argv)
 
@@ -108,10 +108,10 @@ async function main() {
 
 console.time(argv.input[0])
 main()
-	.then(success => {
+	.then(shouldFail => {
 		console.timeEnd(argv.input[0])
 
-		if (!success) {
+		if (shouldFail === true) {
 			process.emit('beforeExit')
 			process.exit(1)
 		}
