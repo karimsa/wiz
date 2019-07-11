@@ -20,6 +20,7 @@ const readFile = util.promisify(fs.readFile)
 const writeFile = util.promisify(fs.writeFile)
 const readdir = util.promisify(fs.readdir)
 const stat = util.promisify(fs.stat)
+const mkdir = util.promisify(fs.mkdir)
 
 const isDevelopmentEnv =
 	(process.env.NODE_ENV || 'development') === 'development'
@@ -52,6 +53,18 @@ async function loadCache(argv) {
 		process.env.CI === 'true'
 	) {
 		return initCache()
+	}
+
+	try {
+		await stat('./.prop')
+	} catch (err) {
+		await mkdir('./.prop')
+
+		const gitignore = (await readFile('.gitignore', 'utf8')).split(/\r?\n/g)
+		if (!gitignore.includes('.prop')) {
+			gitignore.push('.prop')
+			await writeFile('.gitignore', gitignore.join('\r\n'))
+		}
 	}
 
 	try {
