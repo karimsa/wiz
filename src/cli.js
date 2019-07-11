@@ -6,6 +6,7 @@ import { PerformanceObserver } from 'perf_hooks'
 
 import meow from 'meow'
 import Table from 'cli-table'
+import ms from 'ms'
 
 import { lintCommand } from './commands/lint'
 
@@ -71,9 +72,9 @@ if (argv.flags.debug) {
 		Array.from(events.entries())
 			.map(([event, details]) => ({
 				event,
-				avg: details.total / details.ticks,
-				'%': Math.round((details.total / totalDuration) * 1e4) / 1e2,
-				total: details.total,
+				avg: ms(Math.round(details.total / details.ticks)),
+				'%': Math.round((details.total / totalDuration) * 1e2),
+				total: ms(Math.round(details.total)),
 			}))
 			.sort((a, b) => b['%'] - a['%'])
 			.forEach(row => {

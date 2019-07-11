@@ -12,6 +12,7 @@
 		"jest": "^24.8.0",
 		"jest-worker": "^24.6.0",
 		"meow": "^5.0.0",
+		"ms": "^2.1.2",
 		"parallel": "^1.2.0",
 		"rollup": "^1.16.7",
 		"rollup-plugin-babel": "^4.3.3"
