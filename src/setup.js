@@ -56,5 +56,14 @@ export async function setup() {
 				throw err
 			}
 		}
+
+		try {
+			await stat('./.npmignore')
+		} catch (err) {
+			await writeFile(
+				'./.npmignore',
+				['!*.dist.js', '.circleci', '.wiz', 'src', 'tests'].join('\r\n'),
+			)
+		}
 	}
 }
