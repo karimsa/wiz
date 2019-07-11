@@ -2,9 +2,7 @@
 // @description: Check source files for formatting issues & quality
 // @copyright: 2019-present Karim Alibhai.
 
-import * as fs from 'fs'
 import * as path from 'path'
-import * as util from 'util'
 import { performance } from 'perf_hooks'
 
 import eslint from 'eslint'
@@ -13,12 +11,7 @@ import * as ansi from 'ansi-escapes'
 
 import eslintOptions from '../../.eslintrc'
 import { version } from '../../package.json'
-
-const readFile = util.promisify(fs.readFile)
-const writeFile = util.promisify(fs.writeFile)
-const readdir = util.promisify(fs.readdir)
-const stat = util.promisify(fs.stat)
-const mkdir = util.promisify(fs.mkdir)
+import { readFile, writeFile, stat, readdir } from '../fs'
 
 const isDevelopmentEnv =
 	(process.env.NODE_ENV || 'development') === 'development'

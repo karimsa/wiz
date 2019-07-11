@@ -1,6 +1,7 @@
-#!/usr/bin/env node
-
-// ...
+/**
+ * @file src/index.js
+ * @copyright Karim Alibhai. All rights reserved.
+ */
 
 import { PerformanceObserver } from 'perf_hooks'
 
@@ -9,6 +10,7 @@ import Table from 'cli-table'
 import ms from 'ms'
 
 import { lintCommand, lintFlags } from './commands/lint'
+import { buildCommand, buildFlags } from './commands/build'
 
 const argv = meow(
 	`
@@ -23,8 +25,8 @@ const argv = meow(
     
     Options:
         -h, --help  	Print this help message
-		-v, --version   Print the current version of prop
-		-d, --debug		Enable debug mode
+        -v, --version   Print the current version of prop
+        -d, --debug		Enable debug mode
 `,
 	{
 		flags: {
@@ -34,6 +36,7 @@ const argv = meow(
 			},
 
 			...lintFlags,
+			...buildFlags,
 		},
 	},
 )
@@ -80,10 +83,19 @@ if (argv.flags.debug) {
 }
 
 async function main() {
+	if (argv.input.length === 0) {
+		argv.showHelp()
+	}
+
 	console.time(argv.input[0])
 	switch (argv.input[0]) {
 		case 'lint':
 			await lintCommand(argv)
+			break
+
+		case 'build':
+			await lintCommand(argv)
+			await buildCommand(argv)
 			break
 
 		default:

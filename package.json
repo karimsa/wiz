@@ -2,28 +2,31 @@
 	"name": "@karimsa/prop",
 	"version": "0.0.0",
 	"bin": {
-		"prop": "./prop.sh"
+		"prop": "index.dist.js"
 	},
 	"dependencies": {
 		"ansi-escapes": "^4.2.0",
 		"babel-plugin-macros": "^2.6.1",
+		"babel-preset-minify": "^0.5.0",
 		"cli-table": "^0.3.1",
 		"fast-glob": "^3.0.4",
 		"jest": "^24.8.0",
 		"jest-worker": "^24.6.0",
+		"magic-string": "^0.25.3",
 		"meow": "^5.0.0",
 		"ms": "^2.1.2",
 		"parallel": "^1.2.0",
 		"rollup": "^1.16.7",
-		"rollup-plugin-babel": "^4.3.3"
+		"rollup-plugin-babel": "^4.3.3",
+		"rollup-plugin-commonjs": "^10.0.1",
+		"rollup-plugin-json": "^4.0.0",
+		"rollup-plugin-replace": "^2.2.0"
 	},
 	"scripts": {
-		"lint": "eslint src/**/*.js",
-		"pretest": "npm run lint",
-		"build": "babel src -d dist",
-		"watch": "npm run build -- -w"
+		"lint": "node . lint",
+		"build": "node . build"
 	},
-	"main": "dist/index.js",
+	"main": "index.dist.js",
 	"devDependencies": {
 		"@babel/cli": "^7.5.0",
 		"@babel/core": "^7.5.4",
