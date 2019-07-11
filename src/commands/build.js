@@ -4,7 +4,6 @@
  */
 
 import * as path from 'path'
-import { performance } from 'perf_hooks'
 
 import { rollup } from 'rollup'
 import MagicString from 'magic-string'
@@ -14,6 +13,7 @@ import rollupReplace from 'rollup-plugin-replace'
 import rollupCommonJS from 'rollup-plugin-commonjs'
 
 import { chmod } from '../fs'
+import * as perf from '../perf'
 
 const nodeVersion = '8'
 
@@ -49,62 +49,81 @@ export async function buildCommand(argv) {
 		throw new Error(`Non-source found, refusing to build: '${inputFile}'`)
 	}
 
-	performance.mark('startCreateBundle')
-	const bundle = await rollup({
-		input: inputFile,
-		external(id) {
-			return id[0] !== '.' && id[0] !== '/'
-		},
-		plugins: [
-			rollupCommonJS(),
-			rollupJSON(),
-			rollupReplace({
-				'process.env.NODE_ENV': '"production"',
-			}),
-			rollupBabel({
-				minified: false,
-				babelrc: false,
-				comments: false,
-				plugins: [require.resolve('babel-plugin-macros')],
-				presets: [
-					[
-						require.resolve('@babel/preset-env'),
-						{
-							targets: {
-								node: nodeVersion,
-							},
-						},
-					],
-					[
-						require.resolve('babel-preset-minify'),
-						{
-							mangle: false,
-						},
-					],
-				],
-			}),
-			{
-				name: 'add-shebang',
-				renderChunk(code, _, { sourcemap }) {
-					const str = new MagicString(code)
-					str.prepend('#!/usr/bin/env node\n')
-					return {
-						code: str.toString(),
-						map: sourcemap ? str.generateMap({ hires: true }) : undefined,
-					}
-				},
+	const bundle = await perf.measure('bundle create', () =>
+		rollup({
+			perf: argv.flags.debug,
+			input: inputFile,
+			external(id) {
+				return id[0] !== '.' && id[0] !== '/'
 			},
-		],
-	})
-	performance.mark('endCreateBundle')
-	performance.measure('bundle create', 'startCreateBundle', 'endCreateBundle')
+			plugins: [
+				rollupCommonJS(),
+				rollupJSON(),
+				rollupReplace({
+					'process.env.NODE_ENV': '"production"',
+				}),
+				rollupBabel({
+					minified: false,
+					babelrc: false,
+					comments: false,
+					plugins: [require.resolve('babel-plugin-macros')],
+					presets: [
+						[
+							require.resolve('@babel/preset-env'),
+							{
+								targets: {
+									node: nodeVersion,
+								},
+							},
+						],
+						[
+							require.resolve('babel-preset-minify'),
+							{
+								mangle: false,
+							},
+						],
+					],
+				}),
+				{
+					name: 'add-shebang',
+					renderChunk(code, _, { sourcemap }) {
+						const str = new MagicString(code)
+						str.prepend('#!/usr/bin/env node\n')
+						return {
+							code: str.toString(),
+							map: sourcemap ? str.generateMap({ hires: true }) : undefined,
+						}
+					},
+				},
+			],
+		}),
+	)
 
-	performance.mark('startBundleWrite')
-	await bundle.write({
-		file: outputFile,
-		format: 'cjs',
+	await perf.measure('bundle write', async () => {
+		await bundle.write({
+			file: outputFile,
+			format: 'cjs',
+		})
+		await chmod(outputFile, 0o700)
 	})
-	await chmod(outputFile, 0o700)
-	performance.mark('endBundleWrite')
-	performance.measure('bundle write', 'startBundleWrite', 'endBundleWrite')
+
+	if (argv.flags.debug) {
+		const perfEntries = []
+		const timings = bundle.getTimings()
+
+		for (const [event, [duration]] of Object.entries(timings)) {
+			if (event.startsWith('treeshaking pass')) {
+				perfEntries.push({
+					name: `rollup - treeshaking`,
+					duration,
+				})
+			} else {
+				perfEntries.push({
+					name: `rollup - ${event}`,
+					duration,
+				})
+			}
+		}
+		perf.observeEntries(perfEntries)
+	}
 }
