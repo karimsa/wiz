@@ -1,7 +1,9 @@
 module.exports = {
 	"extends": [
 		"standard",
-		"plugin:prettier/recommended"
+		"plugin:import/errors",
+		"prettier",
+		"prettier/standard"
 	],
 	"rules": {
 		"no-tabs": "off",
@@ -14,8 +16,18 @@ module.exports = {
 		"no-unused-vars": [
 			"error",
 			{
-				"varsIgnorePattern": "_"
+				"varsIgnorePattern": "^_+$"
 			}
-		]
+		],
+		"no-labels": "off",
+		"import/order": ["error", {
+			"groups": [
+				"builtin",
+				"external",
+				"internal",
+			],
+			"newlines-between": "always"
+		}],
+		"quote-props": ["error", "as-needed"]
 	}
 }
