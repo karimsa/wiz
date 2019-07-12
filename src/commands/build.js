@@ -22,6 +22,10 @@ export const buildFlags = {
 		type: 'string',
 		alias: 'o',
 	},
+	env: {
+		type: 'string',
+		alias: 'e',
+	},
 }
 
 export async function buildCommand(argv) {
@@ -29,6 +33,14 @@ export async function buildCommand(argv) {
 		throw new Error(`Build must specify exactly one entrypoint to compile`)
 	}
 
+	const env = (typeof argv.flags.env === 'string'
+		? [argv.flags.env]
+		: argv.flags.env || []
+	).reduce((env, pair) => {
+		const [key, value] = pair.split('=')
+		env[`process.env.${key}`] = JSON.stringify(value)
+		return env
+	}, {})
 	const srcDirectory = path.join(process.cwd(), 'src')
 	const inputFile = argv.input[1].startsWith('/')
 		? argv.input[1]
@@ -60,6 +72,7 @@ export async function buildCommand(argv) {
 				rollupCommonJS(),
 				rollupJSON(),
 				rollupReplace({
+					...env,
 					'process.env.NODE_ENV': '"production"',
 				}),
 				rollupBabel({
