@@ -35,6 +35,8 @@ module.exports = {
 
 		// Unresolved modules might exist due to special environments such
 		// as PaaS environments or when developing editor extensions
-		"import/no-unresolved": "off"
+		"import/no-unresolved": "off",
+
+		"node/no-deprecated-api": "off"
 	}
 }
