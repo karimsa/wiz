@@ -4,6 +4,9 @@
 	"scripts": {
 		"build": "./scripts/build.sh"
 	},
+	"engines": {
+		"node": "8.x.x"
+	},
 	"bin": {
 		"wiz": "cli.dist.js"
 	},
