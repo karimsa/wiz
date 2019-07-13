@@ -32,6 +32,7 @@ module.exports = {
 			"newlines-between": "always"
 		}],
 		"quote-props": ["error", "as-needed"],
+		"import/namespace": "off",
 
 		// Unresolved modules might exist due to special environments such
 		// as PaaS environments or when developing editor extensions
