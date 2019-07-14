@@ -4,6 +4,7 @@
  */
 
 import meow from 'meow'
+import updateNotifier from 'update-notifier'
 
 import * as performance from './perf'
 import { setup } from './setup'
@@ -38,6 +39,8 @@ const argv = meow(
 		},
 	},
 )
+
+updateNotifier({ pkg: argv.pkg }).notify()
 
 if (argv.flags.debug) {
 	performance.enableHooks()
