@@ -1,6 +1,6 @@
 {
 	"name": "@karimsa/wiz",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"scripts": {
 		"build": "./scripts/build.sh"
 	},
