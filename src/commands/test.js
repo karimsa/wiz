@@ -4,7 +4,6 @@
  */
 
 import * as fs from 'fs'
-import * as path from 'path'
 import { spawnSync } from 'child_process'
 
 import * as dotenv from 'dotenv'
@@ -25,7 +24,7 @@ export async function testCommand(argv) {
 	}
 
 	const jestArgs = [
-		path.resolve(__dirname, 'node_modules', '.bin', 'jest'),
+		require.resolve('jest'),
 		'--coverage',
 		'--env=node',
 		'--testPathPattern="src\\/.*\\/__tests__\\/test-.*\\.js"',
