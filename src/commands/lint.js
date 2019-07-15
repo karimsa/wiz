@@ -69,7 +69,7 @@ async function updateCache(cache) {
 	await writeFile(cacheLocation, JSON.stringify(cache))
 }
 
-async function* findSourceFiles(directory, cache, dstat) {
+async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
 	// Cache only stores calls to `readdir()` which is invalidated if the modified
 	// time the directory changes
 	// Calls to `findSourceFiles()` themselves cannot be cached because results vary
@@ -101,13 +101,32 @@ async function* findSourceFiles(directory, cache, dstat) {
 
 		if (fstat.isFile()) {
 			if (file.endsWith('.js') && !file.endsWith('.dist.js')) {
-				yield {
-					file: filepath,
-					mtime,
+				if (file.startsWith('test-')) {
+					if (isTestDirectory) {
+						yield {
+							file: filepath,
+							mtime,
+							isTestFile: true,
+						}
+					} else {
+						throw new Error(
+							`Found test file outside of a test directory: '${filepath}'`,
+						)
+					}
+				} else {
+					yield {
+						file: filepath,
+						mtime,
+					}
 				}
 			}
 		} else if (file !== 'node_modules' && file !== 'dist') {
-			yield* findSourceFiles(filepath, cache, fstat)
+			yield* findSourceFiles({
+				directory: filepath,
+				cache,
+				dstat: fstat,
+				isTestDirectory: isTestDirectory || file === '__tests__',
+			})
 		}
 	}
 }
@@ -165,6 +184,14 @@ async function lintAllFiles(argv) {
 		allowInlineConfig: false,
 		useEslintrc: false,
 	})
+	const testEngine = new eslint.CLIEngine({
+		baseConfig: eslintOptions,
+		envs: ['jest'],
+		cwd: __dirname,
+		fix: true,
+		allowInlineConfig: false,
+		useEslintrc: false,
+	})
 	const goals = []
 
 	performance.mark('startFileSearch')
@@ -172,21 +199,35 @@ async function lintAllFiles(argv) {
 		const pkgs = await readdir('./packages')
 		await Promise.all(
 			pkgs.map(async pkg => {
-				for await (const { file, mtime } of findSourceFiles(
-					`./packages/${pkg}`,
-					cache.readdir,
-				)) {
-					goals.push(lintFile({ cache: cache.eslint, engine, file, mtime }))
+				for await (const { file, mtime, isTestFile } of findSourceFiles({
+					directory: `./packages/${pkg}`,
+					cache: cache.readdir,
+				})) {
+					goals.push(
+						lintFile({
+							cache: cache.eslint,
+							engine: isTestFile ? testEngine : engine,
+							file,
+							mtime,
+						}),
+					)
 				}
 			}),
 		)
 	} catch (err) {
 		if (String(err).includes('ENOENT')) {
-			for await (const { file, mtime } of findSourceFiles(
-				'./src',
-				cache.readdir,
-			)) {
-				goals.push(lintFile({ cache: cache.eslint, engine, file, mtime }))
+			for await (const { file, mtime, isTestFile } of findSourceFiles({
+				directory: './src',
+				cache: cache.readdir,
+			})) {
+				goals.push(
+					lintFile({
+						cache: cache.eslint,
+						engine: isTestFile ? testEngine : engine,
+						file,
+						mtime,
+					}),
+				)
 			}
 		} else {
 			throw err
