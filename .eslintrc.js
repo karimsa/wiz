@@ -33,6 +33,7 @@ module.exports = {
 		}],
 		"quote-props": ["error", "as-needed"],
 		"import/namespace": "off",
+		"import/named": "off",
 
 		// Unresolved modules might exist due to special environments such
 		// as PaaS environments or when developing editor extensions
