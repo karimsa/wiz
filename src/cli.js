@@ -3,6 +3,7 @@
  * @copyright Karim Alibhai. All rights reserved.
  */
 
+import ms from 'ms'
 import meow from 'meow'
 import updateNotifier from 'update-notifier'
 
@@ -76,10 +77,10 @@ async function main() {
 	}
 }
 
-console.time(argv.input[0])
+const commandStartTime = Date.now()
 main()
 	.then(shouldFail => {
-		console.timeEnd(argv.input[0])
+		console.log(`${argv.input[0]}: ${ms(Date.now() - commandStartTime)}`)
 
 		if (shouldFail === true) {
 			process.emit('beforeExit')
