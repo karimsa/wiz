@@ -1,6 +1,8 @@
-// @file: lint.js
-// @description: Check source files for formatting issues & quality
-// @copyright: 2019-present Karim Alibhai.
+/**
+ * @file src/commands/lint.js
+ * @description Check source files for formatting issues & quality
+ * @copyright 2019-present Karim Alibhai. All rights reserved.
+ */
 
 import * as path from 'path'
 import { performance } from 'perf_hooks'
