@@ -1,15 +1,16 @@
 /**
  * @file src/commands/test.js
- * @copyright Karim Alibhai. All rights reserved.
+ * @description Runs tests via jest for the project.
+ * @copyright 2019-present Karim Alibhai. All rights reserved.
  */
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { spawnSync } from 'child_process'
 
 import * as dotenv from 'dotenv'
 
 import { isCI } from '../config'
+import { spawn } from '../spawn'
 import * as performance from '../perf'
 
 function findJest() {
@@ -74,19 +75,8 @@ export async function testCommand(argv) {
 	if (argv.flags.debug) {
 		console.log(`Running jest with: %O`, jestArgs)
 	}
-	const { status, error } = spawnSync(process.execPath, jestArgs, {
-		stdio: 'inherit',
-		shell: true,
+
+	spawn(jestArgs, {
 		env,
 	})
-
-	if (error) {
-		throw error
-	}
-	if (status === null) {
-		throw new Error(`Process exited with null exit code`)
-	}
-	if (status !== 0) {
-		process.exit(status)
-	}
 }
