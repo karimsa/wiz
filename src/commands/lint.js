@@ -103,23 +103,16 @@ async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
 
 		if (fstat.isFile()) {
 			if (file.endsWith('.js') && !file.endsWith('.dist.js')) {
-				if (file.startsWith('test-')) {
-					if (isTestDirectory) {
-						yield {
-							file: filepath,
-							mtime,
-							isTestFile: true,
-						}
-					} else {
-						throw new Error(
-							`Found test file outside of a test directory: '${filepath}'`,
-						)
-					}
-				} else {
-					yield {
-						file: filepath,
-						mtime,
-					}
+				if (file.startsWith('test-') && !isTestDirectory) {
+					throw new Error(
+						`Found test file outside of a test directory: '${filepath}'`,
+					)
+				}
+
+				yield {
+					file: filepath,
+					mtime,
+					isTestFile: isTestDirectory,
 				}
 			}
 		} else if (file !== 'node_modules' && file !== 'dist') {
