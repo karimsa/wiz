@@ -11,6 +11,7 @@ import * as dotenv from 'dotenv'
 
 import { isCI } from '../config'
 import { spawn } from '../spawn'
+import { writeFile } from '../fs'
 import * as performance from '../perf'
 
 function findJest() {
@@ -46,11 +47,40 @@ export async function testCommand(argv) {
 		return env
 	})
 
+	try {
+		await writeFile(
+			'./.babelrc',
+			JSON.stringify(
+				{
+					presets: [
+						[
+							'@babel/preset-env',
+							{
+								targets: {
+									node: '8',
+								},
+							},
+						],
+					],
+				},
+				null,
+				'\t',
+			),
+			{
+				flag: 'wx',
+			},
+		)
+	} catch (error) {
+		if (error.code !== 'EEXIST') {
+			throw error
+		}
+	}
+
 	const jestArgs = [
 		await performance.measure('find jest', findJest),
 		'--coverage',
 		'--env=node',
-		'--testPathPattern="src\\/.*\\/__tests__\\/test-.*\\.js"',
+		'--testPathPattern="src(\\/.*)?\\/__tests__\\/test-.*\\.js"',
 	]
 	if (isCI) {
 		jestArgs.push('--ci')
