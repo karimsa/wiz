@@ -39,6 +39,7 @@ module.exports = {
 		// as PaaS environments or when developing editor extensions
 		"import/no-unresolved": "off",
 
-		"node/no-deprecated-api": "off"
+		"node/no-deprecated-api": "off",
+		"promise/param-names": "off"
 	}
 }
