@@ -12,6 +12,7 @@ import { setup } from './setup'
 import { lintCommand, lintFlags } from './commands/lint'
 import { buildCommand, buildFlags } from './commands/build'
 import { testCommand } from './commands/test'
+import { profileCommand, profileFlags } from './commands/profile'
 
 const argv = meow(
 	`
@@ -22,6 +23,7 @@ const argv = meow(
         lint    Check all your source files for code quality
         build   Builds the current project into a target
         test    Run tests for the current project
+        profile Profile an application for performance
         bench   Run benchmarks for the current project
 
     Options:
@@ -38,6 +40,7 @@ const argv = meow(
 
 			...lintFlags,
 			...buildFlags,
+			...profileFlags,
 		},
 	},
 )
@@ -70,6 +73,12 @@ async function main() {
 				return true
 			}
 			return testCommand(argv)
+
+		case 'profile':
+			if (await lintCommand(argv)) {
+				return true
+			}
+			return profileCommand(argv)
 
 		default:
 			console.error(`Unrecognized command: '${argv.input[0]}'`)
