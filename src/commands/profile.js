@@ -163,5 +163,6 @@ export function profileCommand(argv) {
 		return exit(code)
 	}
 
-	require(path.resolve(process.cwd(), entrypoint))
+	// avoid dropping require
+	const _ = require(path.resolve(process.cwd(), entrypoint))
 }

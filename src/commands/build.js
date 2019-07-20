@@ -11,6 +11,7 @@ import rollupBabel from 'rollup-plugin-babel'
 import rollupJSON from 'rollup-plugin-json'
 import rollupReplace from 'rollup-plugin-replace'
 import rollupCommonJS from 'rollup-plugin-commonjs'
+import { terser as rollupTerser } from 'rollup-plugin-terser'
 
 import { chmod } from '../fs'
 import * as perf from '../perf'
@@ -89,13 +90,17 @@ export async function buildCommand(argv) {
 								},
 							},
 						],
-						[
-							require.resolve('babel-preset-minify'),
-							{
-								mangle: false,
-							},
-						],
 					],
+				}),
+				rollupTerser({
+					toplevel: true,
+					mangle: false,
+					compress: {
+						pure_funcs: ['require', 'path.resolve', 'process.cwd'],
+					},
+					output: {
+						beautify: true,
+					},
 				}),
 				{
 					name: 'add-shebang',
