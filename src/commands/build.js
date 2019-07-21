@@ -96,7 +96,7 @@ export async function buildCommand(argv) {
 					toplevel: true,
 					mangle: false,
 					compress: {
-						pure_funcs: ['require', 'path.resolve', 'process.cwd'],
+						pure_funcs: ['path.resolve', 'process.cwd'],
 					},
 					output: {
 						beautify: true,
