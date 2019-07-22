@@ -41,7 +41,7 @@ function ttywrite(str) {
 }
 
 async function loadCache(argv) {
-	if (argv.flags.ignoreCache) {
+	if (argv.ignoreCache) {
 		console.warn(`Warning: Ignoring cache`)
 		return initCache()
 	}

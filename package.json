@@ -30,7 +30,6 @@
 		"eslint-plugin-standard": "^4.0.0",
 		"jest": "^24.8.0",
 		"magic-string": "^0.25.3",
-		"meow": "^5.0.0",
 		"ms": "^2.1.2",
 		"pirates": "^4.0.1",
 		"prettier": "^1.18.2",
@@ -42,7 +41,8 @@
 		"rollup-plugin-terser": "^5.1.1",
 		"update-notifier": "^3.0.1",
 		"uuid": "^3.3.2",
-		"vscode": "^1.1.35"
+		"vscode": "^1.1.35",
+		"yargs": "^13.3.0"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.5.0"

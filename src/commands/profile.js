@@ -35,7 +35,7 @@ export const profileFlags = {
 		default: 10,
 	},
 
-	noExternal: {
+	ignoreNodeModules: {
 		type: 'boolean',
 		alias: 'i',
 		default: false,
@@ -67,12 +67,14 @@ function getModuleName(file) {
 }
 
 export function profileCommand(argv) {
-	if (argv.input.length !== 2) {
+	console.log(argv)
+
+	if (argv._.length !== 2) {
 		console.error(`Please provide one entrypoint`)
 		process.exit(1)
 	}
 
-	const entrypoint = argv.input[1]
+	const entrypoint = argv._[1]
 	const reportEvents = (function(reporterPath) {
 		debug(`Loading reporter: ${reporterPath}`)
 		switch (reporterPath) {
@@ -84,9 +86,9 @@ export function profileCommand(argv) {
 				require(reporterPath)
 		}
 	})(
-		argv.flags.reporter[0] === '.' || argv.flags.reporter[0] === '/'
-			? path.resolve(process.cwd(), argv.flags.reporter)
-			: argv.flags.reporter,
+		argv.reporter[0] === '.' || argv.reporter[0] === '/'
+			? path.resolve(process.cwd(), argv.reporter)
+			: argv.reporter,
 	)
 
 	const transform = filename => () => ({
@@ -136,7 +138,7 @@ export function profileCommand(argv) {
 		let compiling = false
 		pirates.addHook(
 			function(code, filename) {
-				if (filename.includes('babel') || compiling) {
+				if (compiling) {
 					return code
 				}
 
@@ -153,7 +155,7 @@ export function profileCommand(argv) {
 				}
 			},
 			{
-				ignoreNodeModules: argv.flags.noExternal,
+				ignoreNodeModules: argv.ignoreNodeModules,
 			},
 		)
 
@@ -207,7 +209,7 @@ export function profileCommand(argv) {
 							return b.duration - a.duration
 						})
 						.filter(event => {
-							return event.duration >= argv.flags.minThreshold
+							return event.duration >= argv.minThreshold
 						}),
 				)
 				resolveExit()

@@ -32,7 +32,7 @@ function findJest() {
 }
 
 export async function testCommand(argv) {
-	const testFlags = argv.input.slice(1)
+	const testFlags = argv._.slice(1)
 
 	const env = await performance.measure('load env', () => {
 		const env = JSON.parse(JSON.stringify(process.env))
@@ -90,7 +90,7 @@ export async function testCommand(argv) {
 		jestArgs.push('--notify')
 	}
 
-	if (argv.flags.debug) {
+	if (argv.debug) {
 		jestArgs.push('--debug')
 	}
 
@@ -102,7 +102,7 @@ export async function testCommand(argv) {
 		jestArgs.push(flag)
 	})
 
-	if (argv.flags.debug) {
+	if (argv.debug) {
 		console.log(`Running jest with: %O`, jestArgs)
 	}
 

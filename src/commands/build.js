@@ -30,22 +30,22 @@ export const buildFlags = {
 }
 
 export async function buildCommand(argv) {
-	if (argv.input.length !== 2) {
+	if (argv._.length !== 2) {
 		throw new Error(`Build must specify exactly one entrypoint to compile`)
 	}
 
-	const env = (typeof argv.flags.env === 'string'
-		? [argv.flags.env]
-		: argv.flags.env || []
+	const env = (typeof argv.env === 'string'
+		? [argv.env]
+		: argv.env || []
 	).reduce((env, pair) => {
 		const [key, value] = pair.split('=')
 		env[`process.env.${key}`] = JSON.stringify(value)
 		return env
 	}, {})
 	const srcDirectory = path.join(process.cwd(), 'src')
-	const inputFile = argv.input[1].startsWith('/')
-		? argv.input[1]
-		: path.join(process.cwd(), argv.input[1])
+	const inputFile = argv._[1].startsWith('/')
+		? argv._[1]
+		: path.join(process.cwd(), argv._[1])
 	const outputFile = path.join(
 		process.cwd(),
 		path.parse(inputFile).name + '.dist.js',
@@ -64,7 +64,7 @@ export async function buildCommand(argv) {
 
 	const bundle = await perf.measure('bundle create', () =>
 		rollup({
-			perf: argv.flags.debug,
+			perf: argv.debug,
 			input: inputFile,
 			external(id) {
 				return id[0] !== '.' && id[0] !== '/'
@@ -125,7 +125,7 @@ export async function buildCommand(argv) {
 		await chmod(outputFile, 0o700)
 	})
 
-	if (argv.flags.debug) {
+	if (argv.debug) {
 		const perfEntries = []
 		const timings = bundle.getTimings()
 
