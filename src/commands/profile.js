@@ -40,6 +40,12 @@ export const profileFlags = {
 		alias: 'i',
 		default: false,
 	},
+
+	absolutePaths: {
+		type: 'boolean',
+		alias: 'a',
+		default: false,
+	},
 }
 
 function getModuleName(file) {
@@ -67,8 +73,6 @@ function getModuleName(file) {
 }
 
 export function profileCommand(argv) {
-	console.log(argv)
-
 	if (argv._.length !== 2) {
 		console.error(`Please provide one entrypoint`)
 		process.exit(1)
@@ -173,7 +177,7 @@ export function profileCommand(argv) {
 				const start = this.timers.get(id)
 
 				const { moduleName, file } = getModuleName(filepath)
-				const fileID = file + ':' + line
+				const fileID = (argv.absolutePaths ? filepath : file) + ':' + line
 
 				const prev = this.data.get(fileID)
 				if (prev) {
