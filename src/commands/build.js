@@ -11,7 +11,7 @@ import rollupBabel from 'rollup-plugin-babel'
 import rollupJSON from 'rollup-plugin-json'
 import rollupReplace from 'rollup-plugin-replace'
 import rollupCommonJS from 'rollup-plugin-commonjs'
-import { terser as rollupTerser } from 'rollup-plugin-terser'
+import terser from 'terser'
 
 import { chmod } from '../fs'
 import * as perf from '../perf'
@@ -92,16 +92,26 @@ export async function buildCommand(argv) {
 						],
 					],
 				}),
-				rollupTerser({
-					toplevel: true,
-					mangle: false,
-					compress: {
-						pure_funcs: ['path.resolve', 'process.cwd'],
+				{
+					name: 'rollup-plugin-terser',
+					renderChunk(code, chunk, options) {
+						if (!chunk.filename) {
+							return null
+						}
+
+						return terser.minify(code, {
+							toplevel: true,
+							mangle: false,
+							sourceMap: options.sourcemap,
+							compress: {
+								pure_funcs: ['path.resolve', 'process.cwd'],
+							},
+							output: {
+								beautify: true,
+							},
+						})
 					},
-					output: {
-						beautify: true,
-					},
-				}),
+				},
 				{
 					name: 'add-shebang',
 					renderChunk(code, _, { sourcemap }) {
