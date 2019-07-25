@@ -23,17 +23,23 @@ echo "building cli using babel-compiled cli:"
 node dist/cli.js build src/cli.js
 echo "cli.dist.js - `create_hash cli.dist.js`"
 
-# compile several times with the tool itself to ensure
-# that the build works
-for ((i=0;i<5;i++)); do
-	echo ""
-	echo "build #$[i+1]:"
-	./cli.dist.js build src/cli.js
+echo ""
+echo "Building: src/register-profiler.js"
+./cli.dist.js build src/register-profiler.js
 
-	hash="`create_hash cli.dist.js`"
-	echo "cli.dist.js - $hash"
-	cp "cli.dist.js" "${tmp}/cli.${hash}.js"
-done
+if test "$CI" = "true"; then
+	# compile several times with the tool itself to ensure
+	# that the build works
+	for ((i=0;i<5;i++)); do
+		echo ""
+		echo "build #$[i+1]:"
+		./cli.dist.js build src/cli.js
+
+		hash="`create_hash cli.dist.js`"
+		echo "cli.dist.js - $hash"
+		cp "cli.dist.js" "${tmp}/cli.${hash}.js"
+	done
+fi
 
 echo ""
 echo "Build directory: $tmp"
