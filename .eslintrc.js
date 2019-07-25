@@ -40,6 +40,7 @@ module.exports = {
 		"import/no-unresolved": "off",
 
 		"node/no-deprecated-api": "off",
-		"promise/param-names": "off"
+		"promise/param-names": "off",
+		'no-implicit-coercion': 'error',
 	}
 }

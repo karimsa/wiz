@@ -10,12 +10,14 @@ import { performance } from 'perf_hooks'
 import eslint from 'eslint'
 import stylish from 'eslint/lib/cli-engine/formatters/stylish'
 import * as ansi from 'ansi-escapes'
+import createDebug from 'debug'
 
-import eslintOptions from '../../.eslintrc'
+import eslintOptions from '../../.eslintrc.dist'
 import { version } from '../../package.json'
-import { mainDirectory } from '../config'
+import { CurrentNodeEnv, mainDirectory, isCI } from '../config'
 import { readFile, writeFile, stat, readdir } from '../fs'
 
+const debug = createDebug('wiz')
 const isDevelopmentEnv =
 	(process.env.NODE_ENV || 'development') === 'development'
 const cacheLocation = path.join(mainDirectory, 'lintcache.json')
@@ -26,7 +28,8 @@ export const lintFlags = {
 	},
 }
 
-function initCache() {
+function initCache(reason) {
+	debug(`Skipping cache load: ${reason}`)
 	return {
 		version,
 		eslint: {},
@@ -35,7 +38,7 @@ function initCache() {
 }
 
 function ttywrite(str) {
-	if (process.stdout.isTTY) {
+	if (process.stdout.isTTY && !debug.enabled && !isCI) {
 		process.stdout.write(str)
 	}
 }
@@ -45,14 +48,15 @@ async function loadCache(argv) {
 		console.warn(`Warning: Ignoring cache`)
 		return initCache()
 	}
-	if (
-		// automatically ignore caching for non-development environments
-		(process.env.NODE_ENV !== undefined &&
-			process.env.NODE_ENV !== 'development') ||
-		// automatically ignore caching for CI environments
-		process.env.CI === 'true'
-	) {
-		return initCache()
+
+	// automatically ignore caching for non-development environments
+	if (CurrentNodeEnv !== 'development') {
+		return initCache(`NODE_ENV => ${CurrentNodeEnv}`)
+	}
+
+	// automatically ignore caching for CI environments
+	if (isCI) {
+		return initCache('CI env')
 	}
 
 	try {
@@ -61,9 +65,10 @@ async function loadCache(argv) {
 		if (!cache.eslint || !cache.readdir || cache.version !== version) {
 			throw new Error()
 		}
+		debug(`Loaded cache from ${cacheLocation}: %O`, cache)
 		return cache
 	} catch (err) {
-		return initCache()
+		return initCache(`Failed to load cache - ${err.stack}`)
 	}
 }
 
@@ -80,12 +85,23 @@ async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
 
 	dstat = dstat || (await stat(directory))
 	const cachedResults = cache[directory]
-	const isCacheValid = cachedResults && cachedResults.mtime >= +dstat.mtime
+	const isCacheValid =
+		cachedResults && cachedResults.mtime >= Number(dstat.mtime)
 	const files = isCacheValid ? cachedResults.files : await readdir(directory)
 
 	if (!isCacheValid) {
+		if (debug.enabled) {
+			debug(
+				`Cache invalid for: ${directory} (cached at: ${new Date(
+					cachedResults ? cachedResults.mtime : 0,
+				).toLocaleDateString()}, last modified: ${new Date(
+					dstat.mtime,
+				).toLocaleDateString()})`,
+			)
+		}
+
 		cache[directory] = {
-			mtime: +dstat.mtime,
+			mtime: Number(dstat.mtime),
 			files,
 		}
 	}
@@ -99,7 +115,7 @@ async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
 
 		const filepath = path.join(directory, file)
 		const fstat = await stat(filepath)
-		const mtime = +fstat.mtime
+		const mtime = Number(fstat.mtime)
 
 		if (fstat.isFile()) {
 			if (file.endsWith('.js') && !file.endsWith('.dist.js')) {
@@ -173,15 +189,15 @@ async function lintAllFiles(argv) {
 	performance.measure('load cache', 'startCacheLoad', 'endCacheLoad')
 
 	const engine = new eslint.CLIEngine({
-		baseConfig: eslintOptions,
+		...eslintOptions,
 		cwd: __dirname,
 		fix: true,
 		allowInlineConfig: false,
 		useEslintrc: false,
 	})
 	const testEngine = new eslint.CLIEngine({
-		baseConfig: eslintOptions,
-		envs: ['jest'],
+		...eslintOptions,
+		envs: ['es6', 'node', 'jest'],
 		cwd: __dirname,
 		fix: true,
 		allowInlineConfig: false,

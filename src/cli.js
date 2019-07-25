@@ -13,20 +13,22 @@ import * as performance from './perf'
 import { setup } from './setup'
 import { lintCommand, lintFlags } from './commands/lint'
 import { buildCommand, buildFlags } from './commands/build'
-import { testCommand } from './commands/test'
-import { profileCommand, profileFlags } from './commands/profile'
+import { testCommand, testFlags } from './commands/test'
+import { profileCommand } from './commands/profile'
+import { profileFlags } from './profiler'
 
 const debug = createDebug('wiz')
 const argv = yargs
 	.scriptName('wiz')
 	.usage('$0 [command] [options]')
+	.strict()
 	.option('debug', {
 		alias: 'd',
 		describe: 'Enables debug mode for wiz',
 	})
 	.command('lint', 'Check all your source files for code quality', lintFlags)
 	.command('build', 'Builds the current project into a target', buildFlags)
-	.command('test', 'Run tests for the current project')
+	.command('test', 'Run tests for the current project', testFlags)
 	.command('profile', 'Profile an application for performance', profileFlags)
 	.argv
 
@@ -43,6 +45,7 @@ async function main() {
 	}
 
 	await setup()
+	debug(`CLI started with arguments: %O`, argv)
 
 	switch (argv._[0]) {
 		case 'lint':

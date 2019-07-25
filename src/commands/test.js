@@ -31,6 +31,13 @@ function findJest() {
 	return path.resolve(jestPath, jestPackage.bin.jest)
 }
 
+export const testFlags = {
+	profile: {
+		type: 'string',
+		alias: 'p',
+	},
+}
+
 export async function testCommand(argv) {
 	const testFlags = argv._.slice(1)
 
@@ -90,12 +97,16 @@ export async function testCommand(argv) {
 		jestArgs.push('--notify')
 	}
 
-	if (argv.debug) {
-		jestArgs.push('--debug')
+	if (typeof argv.profile === 'string') {
+		jestArgs.push(
+			`--setupTestFrameworkScriptFile="${__dirname}/register-profiler.dist.js"`,
+		)
+		jestArgs.push(`--runInBand`)
+		env.WIZ_PROFILER_ARGS = argv.profile
 	}
 
 	testFlags.forEach(flag => {
-		if (!flag.startsWith('--') || flag.startsWith('--testPathPattern')) {
+		if (!flag.startsWith('-') || flag.startsWith('--testPathPattern')) {
 			throw new Error(`Jest test patterns cannot be overridden`)
 		}
 

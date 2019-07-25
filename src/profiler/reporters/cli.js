@@ -7,7 +7,7 @@ import Table from 'cli-table'
 
 export function cliReporter(events) {
 	const table = new Table({
-		head: ['file', 'duration', '# calls', 'impact'],
+		head: ['type', 'file', 'duration', '# calls', 'impact'],
 	})
 
 	events.forEach(event => {
@@ -15,11 +15,14 @@ export function cliReporter(events) {
 	})
 
 	events
-		.sort((a, b) => {
-			return b.impact - a.impact
-		})
 		.forEach(event => {
-			table.push([event.fileID, event.duration, event.ticks, event.impact])
+			table.push([
+				event.type,
+				event.fileID,
+				event.duration,
+				event.ticks,
+				event.impact,
+			])
 		})
 
 	console.log(table.toString())
