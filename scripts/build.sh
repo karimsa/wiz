@@ -17,6 +17,10 @@ function create_hash() {
 rm -rf dist
 babel src -d dist
 
+echo ""
+echo "Building: .eslintrc.dist.js"
+node scripts/build-eslint.js
+
 # compile the actual build with the babel version
 echo ""
 echo "building cli using babel-compiled cli:"
