@@ -8,7 +8,7 @@
 		"node": "8.x.x"
 	},
 	"bin": {
-		"wiz": "cli.dist.js"
+		"wiz": "wiz.js"
 	},
 	"dependencies": {
 		"@babel/core": "^7.5.4",
