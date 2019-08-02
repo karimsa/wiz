@@ -3,8 +3,14 @@
  * @copyright 2019-present HireFast Inc. All rights reserved.
  */
 
-const id = require.resolve('chokidar')
-require.cache[id] = {
-	id,
-	exports: null,
+try {
+	const id = require.resolve('chokidar')
+	require.cache[id] = {
+		id,
+		exports: null,
+	}
+} catch (error) {
+	if (error.code !== 'MODULE_NOT_FOUND') {
+		throw error
+	}
 }
