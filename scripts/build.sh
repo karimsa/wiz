@@ -31,6 +31,10 @@ echo ""
 echo "Building: src/register-profiler.js"
 ./cli.dist.js build src/register-profiler.js
 
+echo ""
+echo "Building: src/bench.js"
+./cli.dist.js build src/bench.js
+
 if test "$CI" = "true"; then
 	# compile several times with the tool itself to ensure
 	# that the build works
