@@ -1,5 +1,10 @@
 <h1 align="center">wiz</h1>
 <p align="center">Zero config toolchain to manage JS projects with simplicity.</p>
+<p align="center">
+	<a href="https://circleci.com/gh/karimsa/wiz">
+		<img src="https://circleci.com/gh/karimsa/wiz.svg?style=svg" alt="CircleCI">
+	</a>
+</p>
 
 Features:
 
