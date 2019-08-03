@@ -16,6 +16,7 @@ import { buildCommand, buildFlags } from './commands/build'
 import { testCommand, testFlags } from './commands/test'
 import { profileCommand } from './commands/profile'
 import { profileFlags } from './profiler'
+import { benchCommand } from './commands/bench'
 
 const debug = createDebug('wiz')
 const argv = yargs
@@ -29,6 +30,7 @@ const argv = yargs
 	.command('lint', 'Check all your source files for code quality', lintFlags)
 	.command('build', 'Builds the current project into a target', buildFlags)
 	.command('test', 'Run tests for the current project', testFlags)
+	.command('bench', 'Run benchmarks for the current project')
 	.command('profile', 'Profile an application for performance', profileFlags)
 	.argv
 
@@ -68,6 +70,12 @@ async function main() {
 				return true
 			}
 			return profileCommand(argv)
+
+		case 'bench':
+			if (await lintCommand(argv)) {
+				return true
+			}
+			return benchCommand(argv)
 
 		default:
 			console.error(`Unrecognized command: '${argv._[0]}'`)

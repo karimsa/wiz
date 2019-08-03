@@ -14,16 +14,15 @@ export function cliReporter(events) {
 		event.impact = event.duration / event.ticks
 	})
 
-	events
-		.forEach(event => {
-			table.push([
-				event.type,
-				event.fileID,
-				event.duration,
-				event.ticks,
-				event.impact,
-			])
-		})
+	events.forEach(event => {
+		table.push([
+			event.type,
+			event.fileID,
+			event.duration,
+			event.ticks,
+			event.impact,
+		])
+	})
 
 	console.log(table.toString())
 }
