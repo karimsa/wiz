@@ -4,9 +4,14 @@
  */
 
 import * as os from 'os'
+import * as path from 'path'
 import { spawn } from 'child_process'
 
+import createDebug from 'debug'
+
 import { readdir, stat } from '../fs'
+
+const debug = createDebug('wiz')
 
 async function findBenchFiles(dir, results) {
 	for (const file of await readdir(dir)) {
@@ -15,15 +20,28 @@ async function findBenchFiles(dir, results) {
 				return dir + '/__bench__/' + file
 			})
 			results.push(...files)
+		} else if (file === 'node_modules') {
+			// do nothing
 		} else if ((await stat(dir + '/' + file)).isDirectory()) {
 			await findBenchFiles(dir + '/' + file, results)
 		}
 	}
 }
 
-export async function benchCommand() {
+export const benchFlags = {
+	growth: {
+		alias: 'g',
+		default: 'magnitude',
+		describe: 'Growth function to use for number of iterations',
+	},
+}
+
+export async function benchCommand(argv) {
 	const benchFiles = []
-	await findBenchFiles(process.cwd(), benchFiles)
+	await findBenchFiles(path.join(process.cwd(), 'src'), benchFiles)
+	debug(`List of benchmark files: %O`, benchFiles)
+
+	process.env.GROWTH_FN = argv.growth
 
 	let targetShard = 0
 	const fileShards = [...new Array(os.cpus().length)].map(() => [])

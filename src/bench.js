@@ -12,6 +12,26 @@ let benchmarksScheduled = false
 const maxRunTime = 1000
 const maxIterations = Infinity
 
+function fibonacci(n) {
+	if (n <= 2) {
+		return 1
+	}
+
+	let a = 1
+	let b = 1
+	let c = a + b
+	for (let i = 3; i < n; i++) {
+		a = b
+		b = c
+		c = a + b
+	}
+	return c
+}
+
+function magnitude(n) {
+	return 10 ** n
+}
+
 function ms(time) {
 	if (time >= 1000 * 60) {
 		return {
@@ -46,11 +66,14 @@ function prettyNumber(num) {
 }
 
 async function runAllBenchmarks() {
+	const growthFn = process.env.GROWTH_FN === 'fibonacci' ? fibonacci : magnitude
+
 	for (const [title, handlers] of registeredBenchmarks.entries()) {
 		let startTime
 		let avgDurationPerOp = 0
 		let numTotalRuns = 0
 		let numIterations = 1
+		let runNumber = 1
 
 		const b = {
 			N() {
@@ -87,7 +110,7 @@ async function runAllBenchmarks() {
 				break
 			}
 
-			numIterations *= 10
+			numIterations = growthFn(++runNumber)
 		}
 
 		const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
