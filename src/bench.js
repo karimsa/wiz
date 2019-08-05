@@ -8,9 +8,9 @@ import * as ansi from 'ansi-escapes'
 let onlyAcceptOnlys = false
 let registeredBenchmarks = new Map()
 let benchmarksScheduled = false
+let longestBenchmarkTitleLength = 0
 
-const maxRunTime = 1000
-const maxIterations = Infinity
+const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
 
 function fibonacci(n) {
 	if (n <= 2) {
@@ -66,66 +66,104 @@ function prettyNumber(num) {
 }
 
 async function runAllBenchmarks() {
-	const growthFn = process.env.GROWTH_FN === 'fibonacci' ? fibonacci : magnitude
+	const { maxRunTime, maxIterations } = benchConfig
+	const growthFn = benchConfig.growthFn === 'fibonacci' ? fibonacci : magnitude
 
 	for (const [title, handlers] of registeredBenchmarks.entries()) {
-		let startTime
-		let avgDurationPerOp = 0
-		let numTotalRuns = 0
-		let numIterations = 1
-		let runNumber = 1
+		try {
+			let startTime
+			let avgDurationPerOp = 0
+			let numTotalRuns = 0
+			let numIterations = 1
+			let runNumber = 1
+			let numIterationsWasChecked
 
-		const b = {
-			N() {
-				return numIterations
-			},
-			resetTimer() {
-				startTime = Date.now()
-			},
-		}
-
-		const fn = handlers.pop()
-		let args = [b]
-
-		process.stdout.write(`\r${ansi.eraseEndLine}preparing: ${title}`)
-		for (let i = 0; i < handlers.length; i++) {
-			args = await handlers[i](args)
-		}
-
-		while (true) {
-			process.stdout.write(
-				`\r${ansi.eraseEndLine}running: ${title} (N = ${prettyNumber(
-					numIterations,
-				)})`,
-			)
-			b.resetTimer()
-			await fn.apply(global, args)
-
-			const duration = Date.now() - startTime
-
-			avgDurationPerOp += duration / numIterations
-			numTotalRuns++
-
-			if (duration >= maxRunTime || numIterations >= maxIterations) {
-				break
+			const b = {
+				N() {
+					numIterationsWasChecked = true
+					return numIterations
+				},
+				resetTimer() {
+					startTime = Date.now()
+				},
 			}
 
-			numIterations = growthFn(++runNumber)
-		}
+			const fn = handlers.pop()
+			let args = [b]
 
-		const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
-		console.log(
-			`\r${ansi.eraseEndLine}\t${title}\t${prettyNumber(
-				numIterations,
-			)} ops/s\t${time} ${unit}/op`,
-		)
+			process.stdout.write(`\r${ansi.eraseEndLine}preparing: ${title}`)
+			for (let i = 0; i < handlers.length; i++) {
+				args = await handlers[i](args)
+			}
+
+			while (true) {
+				numIterationsWasChecked = false
+				process.stdout.write(
+					`\r${ansi.eraseEndLine}running: ${title} (N = ${prettyNumber(
+						numIterations,
+					)})`,
+				)
+				b.resetTimer()
+				await fn.apply(global, args)
+
+				if (!numIterationsWasChecked) {
+					throw new Error(
+						`Benchmark '${title}' ran without calling b.N() - please see documentation`,
+					)
+				}
+
+				const duration = Date.now() - startTime
+
+				avgDurationPerOp += duration / numIterations
+				numTotalRuns++
+
+				if (duration >= maxRunTime || numIterations >= maxIterations) {
+					break
+				}
+
+				numIterations = growthFn(++runNumber)
+			}
+
+			const lastDuration = (Date.now() - startTime) / 1000
+			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
+			const postTitleSpacing = ' '.repeat(
+				longestBenchmarkTitleLength - title.length + 4,
+			)
+			console.log(
+				`\r${ansi.eraseEndLine}\t${title}${postTitleSpacing}${prettyNumber(
+					Math.floor(numIterations / lastDuration),
+				)} ops/s\t${time} ${unit}/op`,
+			)
+		} catch (error) {
+			console.error(
+				`\r${ansi.eraseEndLine}\t${title}\tFailed with: ${String(error.stack)
+					.split('\n')
+					.map((line, index) => {
+						if (index === 0) {
+							return line
+						}
+						return '\t' + line
+					})
+					.join('\n')}`,
+			)
+		}
 	}
+}
+
+function addBenchmark(title, handlers) {
+	if (registeredBenchmarks.has(title)) {
+		throw new Error(`Duplicate benchmark registered with title: '${title}'`)
+	}
+	registeredBenchmarks.set(title, handlers)
 }
 
 export const benchmark = Object.assign(
 	function(title, ...handlers) {
 		if (!onlyAcceptOnlys) {
-			registeredBenchmarks.set(title, handlers)
+			addBenchmark(title, handlers)
+			if (title.length > longestBenchmarkTitleLength) {
+				longestBenchmarkTitleLength = title.length
+			}
 		}
 		if (!benchmarksScheduled) {
 			benchmarksScheduled = true
@@ -137,8 +175,12 @@ export const benchmark = Object.assign(
 			if (!onlyAcceptOnlys) {
 				onlyAcceptOnlys = true
 				registeredBenchmarks = new Map()
+				longestBenchmarkTitleLength = 0
 			}
-			registeredBenchmarks.set(title, handlers)
+			addBenchmark(title, handlers)
+			if (title.length > longestBenchmarkTitleLength) {
+				longestBenchmarkTitleLength = title.length
+			}
 			if (!benchmarksScheduled) {
 				benchmarksScheduled = true
 				process.nextTick(runAllBenchmarks)
