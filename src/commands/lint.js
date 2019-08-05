@@ -15,7 +15,8 @@ import createDebug from 'debug'
 import eslintOptions from '../../.eslintrc.dist'
 import { version } from '../../package.json'
 import { CurrentNodeEnv, mainDirectory, isCI } from '../config'
-import { readFile, writeFile, stat, readdir } from '../fs'
+import { readFile, writeFile, readdir } from '../fs'
+import { findSourceFiles } from '../glob'
 
 const debug = createDebug('wiz')
 const isDevelopmentEnv =
@@ -74,72 +75,6 @@ async function loadCache(argv) {
 
 async function updateCache(cache) {
 	await writeFile(cacheLocation, JSON.stringify(cache))
-}
-
-async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
-	// Cache only stores calls to `readdir()` which is invalidated if the modified
-	// time the directory changes
-	// Calls to `findSourceFiles()` themselves cannot be cached because results vary
-	// based on file modification times which are independent to directory modification
-	// times
-
-	dstat = dstat || (await stat(directory))
-	const cachedResults = cache[directory]
-	const isCacheValid =
-		cachedResults && cachedResults.mtime >= Number(dstat.mtime)
-	const files = isCacheValid ? cachedResults.files : await readdir(directory)
-
-	if (!isCacheValid) {
-		if (debug.enabled) {
-			debug(
-				`Cache invalid for: ${directory} (cached at: ${new Date(
-					cachedResults ? cachedResults.mtime : 0,
-				).toLocaleDateString()}, last modified: ${new Date(
-					dstat.mtime,
-				).toLocaleDateString()})`,
-			)
-		}
-
-		cache[directory] = {
-			mtime: Number(dstat.mtime),
-			files,
-		}
-	}
-
-	for (const file of files) {
-		// 'hidden' files are always ignored, assuming that they
-		// are hidden for a reason
-		if (file[0] === '.') {
-			continue
-		}
-
-		const filepath = path.join(directory, file)
-		const fstat = await stat(filepath)
-		const mtime = Number(fstat.mtime)
-
-		if (fstat.isFile()) {
-			if (file.endsWith('.js') && !file.endsWith('.dist.js')) {
-				if (file.startsWith('test-') && !isTestDirectory) {
-					throw new Error(
-						`Found test file outside of a test directory: '${filepath}'`,
-					)
-				}
-
-				yield {
-					file: filepath,
-					mtime,
-					isTestFile: isTestDirectory,
-				}
-			}
-		} else if (file !== 'node_modules' && file !== 'dist') {
-			yield* findSourceFiles({
-				directory: filepath,
-				cache,
-				dstat: fstat,
-				isTestDirectory: isTestDirectory || file === '__tests__',
-			})
-		}
-	}
 }
 
 async function lintFile({ cache, engine, file, mtime }) {

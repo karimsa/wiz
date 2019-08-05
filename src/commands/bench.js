@@ -9,24 +9,9 @@ import { spawn } from 'child_process'
 
 import createDebug from 'debug'
 
-import { readdir, stat } from '../fs'
+import { findSourceFiles } from '../glob'
 
 const debug = createDebug('wiz')
-
-async function findBenchFiles(dir, results) {
-	for (const file of await readdir(dir)) {
-		if (file === '__bench__') {
-			const files = (await readdir(dir + '/__bench__')).map(file => {
-				return dir + '/__bench__/' + file
-			})
-			results.push(...files)
-		} else if (file === 'node_modules') {
-			// do nothing
-		} else if ((await stat(dir + '/' + file)).isDirectory()) {
-			await findBenchFiles(dir + '/' + file, results)
-		}
-	}
-}
 
 export const benchFlags = {
 	growth: {
@@ -67,10 +52,6 @@ export const benchFlags = {
 }
 
 export async function benchCommand(argv) {
-	const benchFiles = []
-	await findBenchFiles(path.join(process.cwd(), 'src'), benchFiles)
-	debug(`List of benchmark files: %O`, benchFiles)
-
 	const runProfiler = Boolean(argv.profile)
 	const runSerially = Boolean(argv.serial || runProfiler)
 
@@ -81,18 +62,24 @@ export async function benchCommand(argv) {
 	})
 
 	let targetShard = 0
+	let numBenchFiles = 0
 	const numCPUs = os.cpus().length
 	const fileShards = runSerially ? [[]] : [...new Array(numCPUs)].map(() => [])
-	benchFiles.forEach(file => {
-		fileShards[targetShard].push(file)
 
-		if (++targetShard === fileShards.length) {
-			targetShard = 0
+	for await (const { file, isBenchFile } of findSourceFiles({
+		directory: path.join(process.cwd(), 'src'),
+		cache: {},
+	})) {
+		if (isBenchFile) {
+			++numBenchFiles
+			fileShards[targetShard].push(file)
+
+			if (++targetShard === fileShards.length) {
+				targetShard = 0
+			}
 		}
-	})
-	debug(
-		`Sharded ${benchFiles.length} benchmark files across ${numCPUs} processes`,
-	)
+	}
+	debug(`Sharded ${numBenchFiles} benchmark files across ${numCPUs} processes`)
 
 	const goals = []
 	fileShards.forEach(shard => {
