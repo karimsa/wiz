@@ -25,24 +25,26 @@ const stopRecording = template(
 		? `(global.GLOBALID ? global.GLOBALID.markEnd(ID, LINE, FILE) : console.warn('Skipping ' + FILE + ':' + LINE))`
 		: `(global.GLOBALID && global.GLOBALID.markEnd(ID, LINE, FILE))`,
 )
-const recordPromise = template(
-	superDebug.enabled
-		? `(global.GLOBALID ? global.GLOBALID.measurePromise(ID, LINE, FILE, () => {
+const recordPromise = template(`(() => {
+	if (global.GLOBALID) {
+		return global.GLOBALID.measurePromise(ID, LINE, FILE, () => {
+			return ARG
+		})
+	} else {
+		console.warn('Skipping measurePromise(%s:%s)', FILE, LINE)
 		return ARG
-	}) : console.warn('Skipping measurePromise(' + FILE + ':' + LINE + ')'))`
-		: `(global.GLOBALID && global.GLOBALID.measurePromise(ID, LINE, FILE, () => {
-		return ARG
-	}))`,
-)
-const recordFuncCalls = template(
-	superDebug.enabled
-		? `(global.GLOBALID ? global.GLOBALID.measureCallExp(ID, LINE, FILE, () => {
-		return ARG
-	}) : console.warn('Skipping measureCallExp(' + FILE + ':' + LINE + ')'))`
-		: `(global.GLOBALID && global.GLOBALID.measureCallExp(ID, LINE, FILE, () => {
-		return ARG
-	}))`,
-)
+	}
+})()`)
+const recordFuncCalls = template(`(() => {
+	if (global.GLOBALID) {
+		return global.GLOBALID.measureCallExp(ID, LINE, FILE, () => {
+			return CALL_EXPRESSION
+		})
+	} else {
+		console.warn('Skipping measureCallExp(%s:%s)', FILE, LINE)
+		return CALL_EXPRESSION
+	}
+})()`)
 
 function getModuleName(file) {
 	file = file.split('/')
@@ -100,13 +102,16 @@ function transform(filename) {
 				}
 
 				const ID = t.stringLiteral(uuid())
-				path.node.callee = recordFuncCalls({
-					ID,
-					GLOBALID: globalID,
-					LINE: t.numericLiteral(path.node.loc.start.line),
-					FILE: t.stringLiteral(filename),
-					ARG: path.node.callee,
-				}).expression
+				path.replaceWith(
+					recordFuncCalls({
+						ID,
+						GLOBALID: globalID,
+						LINE: t.numericLiteral(path.node.loc.start.line),
+						FILE: t.stringLiteral(filename),
+						CALL_EXPRESSION: path.node,
+					}).expression,
+				)
+				path.skip()
 			},
 			AwaitExpression(path) {
 				if (!path.node.loc) {
@@ -137,7 +142,7 @@ export const profileFlags = {
 	minThreshold: {
 		type: 'number',
 		alias: 't',
-		default: 10,
+		default: 100,
 	},
 
 	ignoreNodeModules: {
@@ -212,12 +217,10 @@ export function injectProfiler({
 		},
 
 		measureCallExp(id, line, file, fn) {
-			return function() {
-				Profiler.markStart(id)
-				const result = fn.apply(this, arguments)
-				Profiler.markStart(id, line, file, 'callExpression')
-				return result
-			}
+			Profiler.markStart(id)
+			const result = fn()
+			Profiler.markEnd(id, line, file, 'callExpression')
+			return result
 		},
 
 		async measurePromise(id, line, file, fn) {
@@ -240,6 +243,9 @@ export function injectProfiler({
 					.filter(event => {
 						return event.duration >= minThreshold
 					}),
+				{
+					minThreshold,
+				},
 			)
 			onExit()
 		},
