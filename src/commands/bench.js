@@ -122,7 +122,11 @@ export async function benchCommand(argv) {
 						if (code === 0) {
 							resolve()
 						} else {
-							reject(new Error(`Process exited with status code: ${code}`))
+							reject(
+								Object.assign(new Error(), {
+									code: 'CHILD_PROCESS',
+								}),
+							)
 						}
 					})
 				}),
@@ -130,5 +134,14 @@ export async function benchCommand(argv) {
 		}
 	})
 
-	await Promise.all(goals)
+	try {
+		await Promise.all(goals)
+	} catch (error) {
+		if (error.code !== 'CHILD_PROCESS') {
+			throw error
+		}
+
+		console.error(`\nSome benchmarks failed.`)
+		process.exit(1)
+	}
 }

@@ -68,6 +68,7 @@ function prettyNumber(num) {
 async function runAllBenchmarks() {
 	const { maxRunTime, maxIterations } = benchConfig
 	const growthFn = benchConfig.growthFn === 'fibonacci' ? fibonacci : magnitude
+	let allBenchmarksSucceeded = true
 
 	for (const [title, handlers] of registeredBenchmarks.entries()) {
 		try {
@@ -135,6 +136,7 @@ async function runAllBenchmarks() {
 				)} ops/s\t${time} ${unit}/op`,
 			)
 		} catch (error) {
+			allBenchmarksSucceeded = false
 			console.error(
 				`\r${ansi.eraseEndLine}\t${title}\tFailed with: ${String(error.stack)
 					.split('\n')
@@ -147,6 +149,10 @@ async function runAllBenchmarks() {
 					.join('\n')}`,
 			)
 		}
+	}
+
+	if (!allBenchmarksSucceeded) {
+		process.exit(1)
 	}
 }
 
