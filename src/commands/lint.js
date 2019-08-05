@@ -144,7 +144,17 @@ async function* findSourceFiles({ directory, cache, dstat, isTestDirectory }) {
 
 async function lintFile({ cache, engine, file, mtime }) {
 	const cachedResult = cache[file]
-	if (cachedResult && cachedResult.mtime >= mtime) {
+	const isCacheValid = cachedResult && cachedResult.mtime >= mtime
+	debug(
+		`Cache ${
+			isCacheValid ? 'valid' : 'invalid'
+		} for: ${file} (last modified at: ${new Date(
+			mtime,
+		).toLocaleString()}, cached at: ${new Date(
+			cachedResult ? cachedResult.mtime : 0,
+		).toLocaleString()})`,
+	)
+	if (isCacheValid) {
 		return cachedResult.report
 	}
 
