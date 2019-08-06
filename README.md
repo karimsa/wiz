@@ -17,6 +17,7 @@
 **Table of contents:**
 
  * [Getting started](#getting-started)
+ * [Project structure](#project-structure)
  * [Writing benchmarks](#writing-benchmarks)
  * [License](#license)
 
@@ -24,6 +25,19 @@
 
 To get started, simply install `@karimsa/wiz` as a devDependency into your project. The CLI can be called using the `wiz` command.
 Help information is baked into all sub-commands via the `--help` flag. Documentation is being worked on.
+
+## Project structure
+
+Though using `wiz` does not have any configuration or project setup, there are a few rules that are imposed onto projects.
+
+ * All source files must be located within `src/`. Each wiz command depends on this rule & will error out if you try to break it.
+ * All test files must be match the glob `src/**/__tests__/test-*.js`.
+ * All benchmark files must match the glob `src/**/__bench__/bench-*.js`.
+ * All entrypoints must exist top-level in `src/` and must be named something other than `index.js`.
+ 
+“Hidden” files and directories (prefixed with a `.`) will always be ignored.
+ 
+When wiz is called, it will create a local directory to store its cache within called `.wiz`. It will also ensure that this folder is added to your `.gitignore` file. On a CI system, this folder is ignored if it exists and not created if it doesn’t.
 
 ## Writing benchmarks
 
