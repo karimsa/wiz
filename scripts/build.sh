@@ -23,7 +23,7 @@ node scripts/build-eslint.js
 
 # compile the actual build with the babel version
 echo ""
-echo "building cli using babel-compiled cli:"
+echo "Building: cli using babel-compiled cli:"
 node dist/cli.js build src/cli.js
 echo "cli.dist.js - `create_hash cli.dist.js`"
 
@@ -34,6 +34,10 @@ echo "Building: src/register-profiler.js"
 echo ""
 echo "Building: src/bench.js"
 ./cli.dist.js build src/bench.js
+
+echo ""
+echo "Building: docs"
+./cli.dist.js doc
 
 if test "$CI" = "true"; then
 	# compile several times with the tool itself to ensure
