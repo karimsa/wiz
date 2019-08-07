@@ -83,6 +83,56 @@ import { findSourceFiles } from '../glob'
 
 const debug = createDebug('wiz')
 
+/**
+ * List of the possible command-line flags that can be used with `wiz bench`.
+ * They are listed in camel case, but should be passed in kebab case. For more
+ * information on the flags, you should run `wiz bench --help`. For less formal
+ * information, here are some examples.
+ *
+ *
+ * **Run benchmarks in a single process**
+ *
+ * By default, `wiz bench` executes benchmarks in parallel by creating parallel workers
+ * and sharding different benchmark files across the workers. If this behavior is not
+ * desirable (such as if you have your parallel code to test or cannot isolate the
+ * benchmark side effects), then you can use the `--serial` flag to force execution
+ * within a single process.
+ *
+ * **Finding bottlenecks in your code**
+ *
+ * There's a few different ways to profile your benchmark execution. The simplest is
+ * to use the builtin profiler using the `--profile` flag. This always implies the `--serial`
+ * flag so that the profiler output results make sense. However, it is a good practice to add
+ * `.only()` to the specific benchmarks that you want to profile. This will allow you to
+ * isolate the profiler output to a single case.
+ *
+ * The benchmark runner is designed to allow you to profile your benchmark using the node
+ * inspector as well. Let's say that the benchmark you want to profile is in
+ * `src/__bench__/bench-example.js`. You can inspect this with a few different tools:
+ *
+ *  - With Chrome DevTools: `node --inspect-brk src/__bench__/bench-example.js` ([more info](https://nodejs.org/en/docs/inspector))
+ *  - With V8: `node --prof src/__bench__/bench-example.js` ([more info](https://nodejs.org/en/docs/guides/simple-profiling/))
+ *  - With 0x: `0x -o src/__bench__/bench-example.js` ([more info](http://npmjs.org/0x))
+ *
+ * **Customizing execution time**
+ *
+ * You can use the `--benchTime` flag to customize the amount of time to wait for
+ * benchmarks to complete. For example, using `--benchTime=5000` will gradually increase
+ * the value for `b.N()` until benchmarks take longer than 5s to complete.
+ *
+ * ```shell
+ * $ wiz bench # waits for 1s for each benchmark
+ * $ wiz bench --benchTime=5000 # waits for 5s for each benchmark
+ * $ wiz bench --benchTime=10000 # waits for 10s for each benchmark
+ * ```
+ *
+ * **Setting upper limit for benchmark iterations**
+ *
+ * This is more of a safety feature than anything. In the event that it might be dangerous
+ * to over-execute a benchmark, you can use the `--benchRuns` flag to set an upper limit on
+ * the value that `b.N()` can reach. By default, this is unbounded. If you provide a value,
+ * just know that it may deter the results of your benchmark if the value is too low.
+ */
 export const benchFlags = {
 	growth: {
 		type: 'string',
