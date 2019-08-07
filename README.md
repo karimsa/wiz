@@ -14,12 +14,10 @@
  * **Benchmark projects:** provides a benchmark runner.
  * **Profile projects:** provides an instrumentation-based CPU profiler to isolate bottlenecks.
 
-## Usage
+## Getting Started
 
-To get started, simply install `@karimsa/wiz` as a devDependency into your project. The CLI can be called using the `wiz` command.
-Help information is baked into all sub-commands via the `--help` flag. Documentation is being worked on.
-
-To learn more about wiz and its different commands, please see the [documentation](https://alibhai.co/wiz) - read through the docs for `commands/*.js`.
+ 1. Install `wiz` via `npm install --save-dev @karimsa/wiz`.
+ 2. See [documentation](http://wiz.js.org/).
 
 ## License
 
