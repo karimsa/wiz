@@ -215,7 +215,9 @@ function renderDocSection(doc) {
 	switch (doc.type) {
 		case 'function':
 			return (
-				`<p class="lead mb-5">${doc.directives.description}</p>` +
+				(doc.directives.description
+					? `<p class="lead mb-5">${doc.directives.description}</p>`
+					: '') +
 				(doc.directives.params.length > 0
 					? `<h6>Parameters</h6>
 					<ul>
@@ -247,7 +249,9 @@ function renderDocSection(doc) {
 			`
 
 		case 'constant':
-			return `<p class="lead mb-5">${doc.directives.description}</p>`
+			return doc.directives.description
+				? `<p class="lead mb-5">${doc.directives.description}</p>`
+				: ''
 
 		default:
 			throw new Error(`Not sure how to render: ${doc.type}`)
@@ -264,7 +268,7 @@ function renderDocsPage({ file, description, docs }) {
 			.map(
 				doc => `
 				<div>
-					<div class="d-flex align-items-center my-5">
+					<div class="d-flex align-items-center mt-5 mb-3">
 						<span class="badge badge-primary mr-2">${doc.type}</span>
 						<h4 class="d-inline-block mb-0">${doc.name}</h4>
 					</div>
