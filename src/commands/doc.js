@@ -253,10 +253,9 @@ function renderDocSection(doc) {
 	}
 }
 
-function renderDocsPage({ description, docs }) {
-	console.log(docs)
+function renderDocsPage({ file, description, docs }) {
 	return (
-		`
+		`<h2>${shortenPath(file)}</h2>
 		<h6>Description</h6>
 		<p class="lead">${description || 'Not sure what this file does. Do you?'}</p>` +
 		docs
@@ -275,8 +274,82 @@ function renderDocsPage({ description, docs }) {
 	)
 }
 
+const cwd = process.cwd()
+
+function shortenPath(file) {
+	return file.startsWith('./src')
+		? file.substr('./src/'.length)
+		: file.startsWith(cwd + '/src')
+		? file.substr(cwd.length + '/src/'.length)
+		: file
+}
+
+function createFileTree(files) {
+	const root = {
+		name: 'src',
+		dirs: [],
+		files: [],
+	}
+
+	files.forEach(doc => {
+		const file = shortenPath(doc.file)
+		const filepath = file.split('/')
+		let parent = root
+
+		for (let i = 0; i < filepath.length - 1; ++i) {
+			const dirNode = parent.dirs.find(dir => {
+				return dir.name === filepath[i]
+			})
+			if (dirNode) {
+				parent = dirNode
+			} else {
+				const newNode = {
+					name: filepath[i],
+					dirs: [],
+					files: [],
+				}
+				parent.dirs.push(newNode)
+				parent = newNode
+			}
+		}
+
+		parent.files.push(doc.file)
+	})
+
+	return root
+}
+
+function renderFileTree(root) {
+	return `
+	<ul class="nav nav-pills flex-column pl-3">
+		${root.dirs
+			.map(
+				dir => `
+			<li class="nav-item text-left">
+				<a class="nav-link text-white disabled dir-link">${dir.name}</a>
+				${renderFileTree(dir)}
+			</li>
+		`,
+			)
+			.join('')}
+		${root.files
+			.map(
+				file => `
+			<li class="nav-item text-left">
+				<a href="#" data-file="${file}" class="nav-link text-white">${path.basename(
+					file,
+				)}</a>
+			</li>
+		`,
+			)
+			.join('')}
+	</ul>
+	`
+}
+
 async function writeDocs(readme, docs) {
 	const pkg = require(path.join(process.cwd(), 'package.json'))
+	const docTree = createFileTree(docs)
 
 	await writeFile(
 		'./docs/index.html',
@@ -337,6 +410,18 @@ async function writeDocs(readme, docs) {
 					.col-auto.sidebar {
 						min-width: 25%;
 					}
+
+					.dir-link {
+						position: relative;
+					}
+					
+					.dir-link::before {
+						content: '📁';
+						position: absolute;
+						left: -.25rem;
+						font-size: .8rem;
+						margin-top: .25rem;
+					}					
 				</style>
 			</head>
 
@@ -375,25 +460,14 @@ async function writeDocs(readme, docs) {
 									</ul>
 								</li>
 
-								${docs
-									.map(
-										({ file }) => `
-									<li class="nav-item text-left">
-										<a href="#" class="nav-link text-white" data-file="${file}">${
-											file.startsWith('./')
-												? file.substr(2)
-												: file.startsWith(process.cwd())
-												? file.substr(process.cwd().length + 1)
-												: file
-										}</a>
-									</li>
-								`,
-									)
-									.join('')}
+								<li class="nav-item text-left">
+									<a class="nav-link text-white disabled">Sources</a>
+									${renderFileTree(docTree)}
+								</li>
 							</ul>
 						</div>
 
-						<div class="col main h-100 p-5 overflow-auto" id="main">
+						<div class="col main h-100 px-5 py-4 overflow-auto" id="main">
 							${readme.content}
 						</div>
 					</div>
@@ -405,8 +479,8 @@ async function writeDocs(readme, docs) {
 					const main = document.querySelector('#main')
 					const docs = ${JSON.stringify(
 						docs.reduce(
-							(docsByFile, { file, description, docs }) => {
-								docsByFile[file] = renderDocsPage({ description, docs })
+							(docsByFile, doc) => {
+								docsByFile[doc.file] = renderDocsPage(doc)
 								return docsByFile
 							},
 							{
