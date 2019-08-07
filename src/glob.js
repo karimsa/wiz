@@ -1,8 +1,3 @@
-/**
- * @file src/glob.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import * as path from 'path'
 
 import createDebug from 'debug'
@@ -63,16 +58,17 @@ export async function* findSourceFiles({
 					)
 				}
 
-				yield {
+				const yieldInfo = {
 					file: filepath,
 					mtime,
-					isTestFile: Boolean(
-						!isBenchDirectory && isTestDirectory && file.startsWith('test-'),
-					),
-					isBenchFile: Boolean(
-						!isTestDirectory && isBenchDirectory && file.startsWith('bench-'),
-					),
+					type: 'source',
 				}
+				if (!isBenchDirectory && isTestDirectory && file.startsWith('test-')) {
+					yieldInfo.type = 'test'
+				} else if (!isTestDirectory && isBenchDirectory && file.startsWith('bench-')) {
+					yieldInfo.type = 'benchmark'
+				}
+				yield yieldInfo
 			}
 		} else if (file !== 'node_modules' && file !== 'dist') {
 			yield* findSourceFiles({

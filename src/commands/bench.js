@@ -66,11 +66,11 @@ export async function benchCommand(argv) {
 	const numCPUs = os.cpus().length
 	const fileShards = runSerially ? [[]] : [...new Array(numCPUs)].map(() => [])
 
-	for await (const { file, isBenchFile } of findSourceFiles({
+	for await (const { file, type } of findSourceFiles({
 		directory: path.join(process.cwd(), 'src'),
 		cache: {},
 	})) {
-		if (isBenchFile) {
+		if (type === 'benchmark') {
 			++numBenchFiles
 			fileShards[targetShard].push(file)
 

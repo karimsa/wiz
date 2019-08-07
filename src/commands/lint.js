@@ -153,14 +153,14 @@ async function lintAllFiles(argv) {
 		const pkgs = await readdir('./packages')
 		await Promise.all(
 			pkgs.map(async pkg => {
-				for await (const { file, mtime, isTestFile } of findSourceFiles({
+				for await (const { file, mtime, type } of findSourceFiles({
 					directory: `./packages/${pkg}`,
 					cache: cache.readdir,
 				})) {
 					goals.push(
 						lintFile({
 							cache: cache.eslint,
-							engine: isTestFile ? testEngine : engine,
+							engine: type === 'test' ? testEngine : engine,
 							file,
 							mtime,
 						}),
@@ -170,14 +170,14 @@ async function lintAllFiles(argv) {
 		)
 	} catch (err) {
 		if (String(err).includes('ENOENT')) {
-			for await (const { file, mtime, isTestFile } of findSourceFiles({
+			for await (const { file, mtime, type } of findSourceFiles({
 				directory: './src',
 				cache: cache.readdir,
 			})) {
 				goals.push(
 					lintFile({
 						cache: cache.eslint,
-						engine: isTestFile ? testEngine : engine,
+						engine: type === 'test' ? testEngine : engine,
 						file,
 						mtime,
 					}),
