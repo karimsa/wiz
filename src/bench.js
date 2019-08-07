@@ -158,6 +158,9 @@ function addBenchmark(title, handlers) {
 	registeredBenchmarks.set(title, handlers)
 }
 
+/**
+ * @type function
+ */
 export const benchmark = Object.assign(
 	function(title, ...handlers) {
 		if (!onlyAcceptOnlys) {
