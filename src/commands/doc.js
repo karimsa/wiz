@@ -397,7 +397,7 @@ async function writeDocs({
 		<html>
 			<head>
 				<meta charset="utf-8">
-				<title>Documentation for ${name} v${version}</title>
+				<title>Documentation for ${name} ${version}</title>
 
 				<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.9/styles/agate.min.css">
@@ -471,7 +471,7 @@ async function writeDocs({
 						<div class="col-auto sidebar h-100 py-4 overflow-auto">
 							<div class="text-center p-4 rounded-lg bg-primary">
 								<h5 class="font-weight-bold text-white">${name}</h5>
-								<p class="text-white ${description ? '' : 'mb-0'}">v${version}${
+								<p class="text-white ${description ? '' : 'mb-0'}">${version}${
 			revision ? `<span class="px-2">&bull;</span>${revision}` : ''
 		}</p>
 								${description ? `<p class="text-white mb-0">${description}</p>` : ''}
@@ -637,7 +637,7 @@ export async function docCommand(argv) {
 		docs,
 		name: pkg.name,
 		description: pkg.description,
-		version: pkg.version,
+		version: pkg.version ? 'v' + pkg.version : 'unversioned',
 		revision: gitRev,
 	})
 
