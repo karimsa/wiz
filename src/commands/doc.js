@@ -617,6 +617,7 @@ export async function docCommand(argv) {
 		headings: [],
 	}
 	const renderer = new marked.Renderer()
+	const pkg = require(path.join(process.cwd(), 'package.json'))
 
 	renderer.heading = function(text, level, _, slugger) {
 		const slug = slugger.slug(text)
@@ -636,10 +637,19 @@ export async function docCommand(argv) {
 			throw error
 		}
 
-		readme.content = `There's no README for this project. But you can use the sidebar source files tree to explore the documentation.`
+		readme.content = [
+			`# ${pkg.name}`,
+			``,
+			pkg.description || '(No description)',
+			'',
+			pkg.license
+				? `## License
+
+Licensed under ${pkg.license}.`
+				: '',
+		].join('\n')
 	}
 
-	const pkg = require(path.join(process.cwd(), 'package.json'))
 	await writeDocs({
 		readme,
 		docs,
