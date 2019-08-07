@@ -9,6 +9,7 @@ import { spawn } from 'child_process'
 
 import createDebug from 'debug'
 import marked from 'marked'
+import open from 'open'
 import * as babel from '@babel/core'
 import babelTraverse from '@babel/traverse'
 import { WaitGroup } from 'rsxjs'
@@ -537,7 +538,7 @@ async function writeDocs({
  * Executes documentation generation on all source files
  * part of the local repository.
  */
-export async function docCommand() {
+export async function docCommand(argv) {
 	const docs = []
 	const wg = new WaitGroup()
 
@@ -613,4 +614,21 @@ export async function docCommand() {
 		version: pkg.version,
 		revision: gitRev,
 	})
+
+	if (argv.open) {
+		await open(path.join(process.cwd(), 'docs', 'index.html'))
+	}
+}
+
+/**
+ * `--open` opens `docs/index.html` in the default browser after building the
+ * documentation.
+ */
+export const docFlags = {
+	open: {
+		alias: 'o',
+		type: 'boolean',
+		default: false,
+		describe: 'Opens the documentation after building it',
+	},
 }

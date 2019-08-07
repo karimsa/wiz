@@ -27,10 +27,10 @@ import { testCommand, testFlags } from './commands/test'
 import { profileCommand } from './commands/profile'
 import { profileFlags } from './profiler'
 import { benchCommand, benchFlags } from './commands/bench'
-import { docCommand } from './commands/doc'
+import { docCommand, docFlags } from './commands/doc'
 
 const debug = createDebug('wiz')
-const argv = yargs
+const { argv } = yargs
 	.scriptName('wiz')
 	.usage('$0 [command] [options]')
 	.strict()
@@ -43,7 +43,7 @@ const argv = yargs
 	.command('test', 'Run tests for the current project', testFlags)
 	.command('bench', 'Run benchmarks for the current project', benchFlags)
 	.command('profile', 'Profile an application for performance', profileFlags)
-	.command('doc', 'Generate documentation for project').argv
+	.command('doc', 'Generate documentation for project', docFlags)
 
 updateNotifier({ pkg }).notify()
 
