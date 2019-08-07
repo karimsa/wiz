@@ -10,9 +10,9 @@ import { spawn } from 'child_process'
 import createDebug from 'debug'
 import marked from 'marked'
 import open from 'open'
+import { codeFrameColumns } from '@babel/code-frame'
 import * as babel from '@babel/core'
 import babelTraverse from '@babel/traverse'
-import { WaitGroup } from 'rsxjs'
 
 import { readFile, writeFile } from '../fs'
 import { findSourceFiles } from '../glob'
@@ -148,14 +148,31 @@ function getDocElementType(path) {
 }
 
 async function generateDocs(file) {
-	const ast = await babel.parseAsync(await readFile(file, 'utf8'), {
+	const fileCode = await readFile(file, 'utf8')
+	const ast = await babel.parseAsync(fileCode, {
 		filename: file.replace(process.cwd(), ''),
 	})
 	const docs = []
-	const description =
-		ast.comments.length > 0 && ast.comments[0].start === 0
-			? parseDocString(ast.comments[0].value).description
-			: null
+	let description = null
+
+	if (ast.comments.length > 0 && ast.comments[0].start === 0) {
+		try {
+			description = parseDocString(ast.comments[0].value).description
+		} catch (error) {
+			const stack =
+				'\n' +
+				codeFrameColumns(fileCode, {
+					start: ast.comments[0].loc.start,
+				}) +
+				'\n' +
+				String(error.stack) +
+				'\n'
+			const err = {
+				stack,
+			}
+			throw err
+		}
+	}
 
 	babelTraverse(ast, {
 		ExportNamedDeclaration(path) {
@@ -540,24 +557,33 @@ async function writeDocs({
  */
 export async function docCommand(argv) {
 	const docs = []
-	const wg = new WaitGroup()
+	const goals = []
+	let error
 
 	for await (const { file, type } of findSourceFiles({
 		cache: {},
 		directory: path.join(process.cwd(), 'src'),
 	})) {
 		if (type === 'source') {
-			wg.add(
-				generateDocs(file).then(doc => {
+			goals.push(
+				generateDocs(file).then(
+					doc => {
 					if (doc.description || doc.docs.length > 0) {
 						docs.push(doc)
 					}
-				}),
+					},
+					err => {
+						error = err
+					},
+				),
 			)
 		}
 	}
 
-	await wg.wait()
+	await Promise.all(goals)
+	if (error) {
+		throw error
+	}
 
 	const gitRev = await new Promise((resolve, reject) => {
 		const gitChild = spawn('git log --format="%h" --max-count=1', {
