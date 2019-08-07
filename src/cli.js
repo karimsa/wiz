@@ -12,6 +12,7 @@ import { testCommand, testFlags } from './commands/test'
 import { profileCommand } from './commands/profile'
 import { profileFlags } from './profiler'
 import { benchCommand, benchFlags } from './commands/bench'
+import { docCommand } from './commands/doc'
 
 const debug = createDebug('wiz')
 const argv = yargs
@@ -27,7 +28,7 @@ const argv = yargs
 	.command('test', 'Run tests for the current project', testFlags)
 	.command('bench', 'Run benchmarks for the current project', benchFlags)
 	.command('profile', 'Profile an application for performance', profileFlags)
-	.argv
+	.command('doc', 'Generate documentation for project').argv
 
 updateNotifier({ pkg }).notify()
 
@@ -71,6 +72,12 @@ async function main() {
 				return true
 			}
 			return benchCommand(argv)
+
+		case 'doc':
+			if (await lintCommand(argv)) {
+				return true
+			}
+			return docCommand(argv)
 
 		default:
 			console.error(`Unrecognized command: '${argv._[0]}'`)
