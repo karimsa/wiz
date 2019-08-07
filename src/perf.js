@@ -1,8 +1,3 @@
-/**
- * @file src/perf.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import { performance, PerformanceObserver } from 'perf_hooks'
 
 import Table from 'cli-table'
