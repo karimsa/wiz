@@ -568,9 +568,9 @@ export async function docCommand(argv) {
 			goals.push(
 				generateDocs(file).then(
 					doc => {
-					if (doc.description || doc.docs.length > 0) {
-						docs.push(doc)
-					}
+						if (doc.description || doc.docs.length > 0) {
+							docs.push(doc)
+						}
 					},
 					err => {
 						error = err
@@ -627,9 +627,17 @@ export async function docCommand(argv) {
 		return `<h${level} id="${slug}"><a class="text-body" href="#${slug}">${text}</a></h${level}>`
 	}
 
-	readme.content = marked(await readFile('./README.md', 'utf8'), {
-		renderer,
-	})
+	try {
+		readme.content = marked(await readFile('./README.md', 'utf8'), {
+			renderer,
+		})
+	} catch (error) {
+		if (error.code !== 'ENOENT') {
+			throw error
+		}
+
+		readme.content = `There's no README for this project. But you can use the sidebar source files tree to explore the documentation.`
+	}
 
 	const pkg = require(path.join(process.cwd(), 'package.json'))
 	await writeDocs({
