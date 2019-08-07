@@ -255,9 +255,10 @@ function renderDocSection(doc) {
 
 function renderDocsPage({ file, description, docs }) {
 	return (
-		`<h2>${shortenPath(file)}</h2>
-		<h6>Description</h6>
-		<p class="lead">${description || 'Not sure what this file does. Do you?'}</p>` +
+		`<h2>${shortenPath(file)}</h2>` +
+		(description
+			? `<h6>Description</h6><p class="lead">${description}</p>`
+			: '') +
 		docs
 			.map(
 				doc => `
