@@ -5,6 +5,7 @@
  */
 
 import * as path from 'path'
+import { spawn } from 'child_process'
 
 import createDebug from 'debug'
 import marked from 'marked'
@@ -285,6 +286,16 @@ function shortenPath(file) {
 		: file
 }
 
+function insertSorted(elm, list) {
+	for (let i = 0; i < list.length; ++i) {
+		if (list[i] > elm) {
+			list.splice(i, 0, elm)
+			return
+		}
+	}
+	list.push(elm)
+}
+
 function createFileTree(files) {
 	const root = {
 		name: 'src',
@@ -314,7 +325,7 @@ function createFileTree(files) {
 			}
 		}
 
-		parent.files.push(doc.file)
+		insertSorted(doc.file, parent.files)
 	})
 
 	return root
@@ -348,8 +359,14 @@ function renderFileTree(root) {
 	`
 }
 
-async function writeDocs(readme, docs) {
-	const pkg = require(path.join(process.cwd(), 'package.json'))
+async function writeDocs({
+	readme,
+	docs,
+	name,
+	description,
+	version,
+	revision,
+}) {
 	const docTree = createFileTree(docs)
 
 	await writeFile(
@@ -358,7 +375,7 @@ async function writeDocs(readme, docs) {
 		<html>
 			<head>
 				<meta charset="utf-8">
-				<title>Documentation for ${pkg.name} v${pkg.version}</title>
+				<title>Documentation for ${name} v${version}</title>
 
 				<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.9/styles/agate.min.css">
@@ -431,17 +448,11 @@ async function writeDocs(readme, docs) {
 					<div class="row h-100 overflow-hidden">
 						<div class="col-auto sidebar h-100 py-4 overflow-auto">
 							<div class="text-center p-4 rounded-lg bg-primary">
-								<h5 class="font-weight-bold text-white">${pkg.name}</h5>
-								${
-									pkg.version
-										? `<p class="text-white ${
-												pkg.description ? '' : 'mb-0'
-										  }">v${pkg.version}</p>`
-										: `<p class="text-white ${
-												pkg.description ? '' : 'mb-0'
-										  }">(unversioned)</p>`
-								}
-								${pkg.description ? `<p class="text-white mb-0">${pkg.description}</p>` : ''}
+								<h5 class="font-weight-bold text-white">${name}</h5>
+								<p class="text-white ${description ? '' : 'mb-0'}">v${version}${
+			revision ? `<span class="px-2">&bull;</span>${revision}` : ''
+		}</p>
+								${description ? `<p class="text-white mb-0">${description}</p>` : ''}
 							</div>
 
 							<ul class="nav flex-column nav-pills nav-fill mt-4">
@@ -542,6 +553,35 @@ export async function docCommand() {
 	}
 
 	await wg.wait()
+
+	const gitRev = await new Promise((resolve, reject) => {
+		const gitChild = spawn('git log --format="%h" --max-count=1', {
+			stdio: ['ignore', 'pipe', 'inherit'],
+			shell: true,
+		})
+		let stdout = ''
+
+		gitChild.stdout.on('data', chunk => {
+			stdout += chunk.toString('utf8')
+		})
+
+		gitChild.on('error', error => {
+			if (error.code === 'ENOENT') {
+				resolve()
+			} else {
+				reject(error)
+			}
+		})
+
+		gitChild.on('close', code => {
+			if (code !== 0) {
+				reject(new Error(`git exited with code: ${code}`))
+			} else {
+				resolve(stdout)
+			}
+		})
+	})
+
 	const readme = {
 		headings: [],
 	}
@@ -559,5 +599,14 @@ export async function docCommand() {
 	readme.content = marked(await readFile('./README.md', 'utf8'), {
 		renderer,
 	})
-	await writeDocs(readme, docs)
+
+	const pkg = require(path.join(process.cwd(), 'package.json'))
+	await writeDocs({
+		readme,
+		docs,
+		name: pkg.name,
+		description: pkg.description,
+		version: pkg.version,
+		revision: gitRev,
+	})
 }
