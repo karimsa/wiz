@@ -1,8 +1,3 @@
-/**
- * @file src/bench.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import * as ansi from 'ansi-escapes'
 
 let onlyAcceptOnlys = false

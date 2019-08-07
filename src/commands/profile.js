@@ -1,8 +1,3 @@
-/**
- * @file src/commands/profile.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import * as path from 'path'
 
 import createDebug from 'debug'

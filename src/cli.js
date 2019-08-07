@@ -1,8 +1,3 @@
-/**
- * @file src/index.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import ms from 'ms'
 import updateNotifier from 'update-notifier'
 import createDebug from 'debug'

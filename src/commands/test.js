@@ -1,7 +1,5 @@
 /**
- * @file src/commands/test.js
- * @description Runs tests via jest for the project.
- * @copyright 2019-present Karim Alibhai. All rights reserved.
+ * Runs tests via jest for the project.
  */
 
 import * as fs from 'fs'

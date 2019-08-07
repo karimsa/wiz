@@ -1,8 +1,3 @@
-/**
- * @file src/setup.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import * as path from 'path'
 
 import { stat, mkdir, readFile, writeFile } from './fs'

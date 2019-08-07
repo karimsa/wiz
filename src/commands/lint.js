@@ -1,7 +1,5 @@
 /**
- * @file src/commands/lint.js
- * @description Check source files for formatting issues & quality
- * @copyright 2019-present Karim Alibhai. All rights reserved.
+ * Check source files for formatting issues & quality.
  */
 
 import * as path from 'path'

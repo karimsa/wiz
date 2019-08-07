@@ -1,8 +1,3 @@
-/**
- * @file src/register-profiler.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import Yargs from 'yargs/yargs'
 
 import { injectProfiler, profileFlags } from './profiler'

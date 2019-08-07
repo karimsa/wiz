@@ -1,8 +1,3 @@
-/**
- * @file src/fs.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import * as fs from 'fs'
 
 import createDebug from 'debug'

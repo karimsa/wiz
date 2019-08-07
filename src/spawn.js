@@ -1,8 +1,3 @@
-/**
- * @file src/spawn.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import { spawnSync } from 'child_process'
 
 export function spawn(args, options = {}) {

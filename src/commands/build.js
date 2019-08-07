@@ -1,8 +1,3 @@
-/**
- * @file src/commands/build.js
- * @copyright Karim Alibhai. All rights reserved.
- */
-
 import * as path from 'path'
 
 import { rollup } from 'rollup'

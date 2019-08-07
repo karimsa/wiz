@@ -1,8 +1,3 @@
-/**
- * @file src/profiler/index.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import * as path from 'path'
 
 import pirates from 'pirates'

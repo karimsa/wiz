@@ -1,8 +1,3 @@
-/**
- * @file src/reporter.js
- * @copyright 2019-present Karim Alibhai. All rights reserved.
- */
-
 import Table from 'cli-table'
 
 export function cliReporter(events, { minThreshold }) {
