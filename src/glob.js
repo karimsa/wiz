@@ -65,7 +65,11 @@ export async function* findSourceFiles({
 				}
 				if (!isBenchDirectory && isTestDirectory && file.startsWith('test-')) {
 					yieldInfo.type = 'test'
-				} else if (!isTestDirectory && isBenchDirectory && file.startsWith('bench-')) {
+				} else if (
+					!isTestDirectory &&
+					isBenchDirectory &&
+					file.startsWith('bench-')
+				) {
 					yieldInfo.type = 'benchmark'
 				}
 				yield yieldInfo
