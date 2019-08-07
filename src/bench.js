@@ -1,3 +1,5 @@
+// For documentation on benchmarks, please see: `src/commands/bench.js`
+
 import * as ansi from 'ansi-escapes'
 
 let onlyAcceptOnlys = false
@@ -159,6 +161,49 @@ function addBenchmark(title, handlers) {
 }
 
 /**
+ * This function registers benchmarks to the benchmark runner. For most basic use,
+ * pass a string title describing the benchmark and a handler to run the benchmark.
+ *
+ * Benchmark titles should be unique across your codebase. This is verified by the
+ * benchmark registration and the process will fail if you use a non-unique title.
+ *
+ * **Advanced: Using currying**
+ *
+ * The benchmark function also supports currying handlers to perform custom setup.
+ * You can think of this as synonymous to `beforeEach()` in mocha. The way that
+ * this works is that functions will be executed in the order that they are passed
+ * in order to create a set of arguments that should be passed to the final handler
+ * upon each invocation of the benchmark. The `b` object is never re-instantiated, but
+ * the values returned by `b.N()` will change and should not be cached by setup
+ * handlers.
+ *
+ * ###### Example
+ *
+ * ```javascript
+ * import { benchmark } from '@karimsa/wiz/bench'
+ *
+ * import { createApi } from '../__tests__/helpers'
+ *
+ * async function setup(b) {
+ * 		const api = await createApi({ version: 'v1' })
+ * 		await api.setupUsers(10)
+ *
+ * 		return {
+ * 			b,
+ * 			api,
+ * 		}
+ * }
+ *
+ * benchmark('my custom benchmark', setup, async ({ b, api }) => {
+ * 		// b.resetTimer() is unnecessary here since the execution
+ * 		// time of 'setup()' is completely ignored by the runner
+ *
+ * 		for (let i = 0; i < b.N(); ++i) {
+ * 			await api.addRecord({ i })
+ * 		}
+ * })
+ * ```
+ *
  * @type function
  */
 export const benchmark = Object.assign(
