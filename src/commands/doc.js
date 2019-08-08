@@ -385,9 +385,10 @@ async function writeDocs({
 	readme,
 	docs,
 	name,
-	description,
 	version,
 	revision,
+	homepage,
+	github,
 }) {
 	const docTree = createFileTree(docs)
 
@@ -472,10 +473,20 @@ async function writeDocs({
 						<div class="col-auto sidebar h-100 py-4 overflow-auto">
 							<div class="text-center p-4 rounded-lg bg-primary">
 								<h5 class="font-weight-bold text-white">${name}</h5>
-								<p class="text-white ${description ? '' : 'mb-0'}">${version}${
+								<p class="text-white mb-0">${version}${
 			revision ? `<span class="px-2">&bull;</span>${revision}` : ''
+		}${github || homepage ? `<span class="px-2">•</span>` : ''}${
+			github
+				? `<a class="text-white ${
+						homepage ? 'mr-2' : ''
+				  }" href="${github}"><i class="fab fa-github-square"></i></a>`
+				: ''
+		}
+		${
+			homepage
+				? `<a class="text-white" href="${homepage}"><i class="fas fa-link"></i></a>`
+				: ''
 		}</p>
-								${description ? `<p class="text-white mb-0">${description}</p>` : ''}
 							</div>
 
 							<ul class="nav flex-column nav-pills nav-fill mt-4">
@@ -670,8 +681,9 @@ Licensed under ${pkg.license}.`
 		readme,
 		docs,
 		name: pkg.name,
-		description: pkg.description,
 		version: pkg.version ? 'v' + pkg.version : 'unversioned',
+		homepage: pkg.homepage,
+		github: pkg.repository ? pkg.repository.url : undefined,
 		revision: gitRev,
 	})
 

@@ -1,6 +1,7 @@
 {
 	"name": "@karimsa/wiz",
 	"version": "0.3.2",
+	"description": "Zero config toolchain to manage JS projects with simplicity.",
 	"scripts": {
 		"build": "./scripts/build.sh"
 	},
@@ -52,5 +53,22 @@
 	},
 	"publishConfig": {
 		"access": "public"
-	}
+	},
+	"keywords": [
+		"lint",
+		"format",
+		"build",
+		"rollup",
+		"eslint",
+		"docs",
+		"testing",
+		"jest",
+		"profiler"
+	],
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/karimsa/wiz"
+	},
+	"homepage": "https://wiz.js.org"
 }
