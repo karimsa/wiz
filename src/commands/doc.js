@@ -397,6 +397,7 @@ async function writeDocs({
 		<html>
 			<head>
 				<meta charset="utf-8">
+				<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 				<title>Documentation for ${name} ${version}</title>
 
 				<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
@@ -429,7 +430,7 @@ async function writeDocs({
 					}
 
 					.main {
-						background-color: #fcfcfc;
+						background-color: #eaeaea;
 					}
 
 					pre {
@@ -501,50 +502,65 @@ async function writeDocs({
 							</ul>
 						</div>
 
-						<div class="col main h-100 px-5 py-4 overflow-auto" id="main">
-							${readme.content}
+						<div class="col main h-100 px-md-5 py-4 overflow-auto d-flex" id="scroll-container">
+							<div class="container">
+								<div class="row">
+									<div class="col p-md-5 bg-white rounded-lg" role="main">
+										${readme.content}
+									</div>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 
-				<script src="https://code.jquery.com/jquery-latest.min.js"></script>
+				<script async src="https://kit.fontawesome.com/7d12e17cf9.js"></script>
 				<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.15.9/highlight.min.js"></script>
 				<script>
-					const main = document.querySelector('#main')
-					const docs = ${JSON.stringify(
-						docs.reduce(
-							(docsByFile, doc) => {
-								docsByFile[doc.file] = renderDocsPage(doc)
-								return docsByFile
-							},
-							{
-								__README__: readme.content,
-							},
-						),
-						null,
-						'\t',
-					)}
+					!function() {
+						var main = document.querySelector('[role="main"]')
+						var scrollContainer = document.getElementById('scroll-container')
+						var docs = ${JSON.stringify(
+							docs.reduce(
+								(docsByFile, doc) => {
+									docsByFile[doc.file] = renderDocsPage(doc)
+									return docsByFile
+								},
+								{
+									__README__: readme.content,
+								},
+							),
+							null,
+							'\t',
+						)}
 
-					function updateAfterRender() {
-						document.querySelectorAll('pre > code').forEach(block => {
-							hljs.highlightBlock(block)
+						function scrollToTop({ stepSize }) {
+							if (scrollContainer.scrollTop > 1) {
+								stepSize = stepSize || (scrollContainer.scrollTop / 100)
+								scrollContainer.scrollTop -= stepSize
+								requestAnimationFrame(function() {
+									scrollToTop({ stepSize })
+								})
+							}
+						}
+
+						function updateAfterRender() {
+							document.querySelectorAll('pre > code').forEach(block => {
+								hljs.highlightBlock(block)
+							})
+						}
+
+						document.querySelectorAll('a[data-file]').forEach(fileLink => {
+							fileLink.addEventListener('click', evt => {
+								evt.preventDefault()
+								main.innerHTML = docs[fileLink.getAttribute('data-file')]
+
+								updateAfterRender()
+							})
 						})
 
-						$(main).animate({
-							scrollTop: 0,
-						})
-					}
-
-					document.querySelectorAll('a[data-file]').forEach(fileLink => {
-						fileLink.addEventListener('click', evt => {
-							evt.preventDefault()
-							main.innerHTML = docs[fileLink.getAttribute('data-file')]
-
-							updateAfterRender()
-						})
-					})
-
-					updateAfterRender()
+						updateAfterRender()
+					}()
 				</script>
 			</body>
 		</html>`,
