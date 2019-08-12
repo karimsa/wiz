@@ -104,7 +104,10 @@ export async function testCommand(argv) {
 	}
 
 	testFlags.forEach(flag => {
-		if (!flag.startsWith('-') || flag.startsWith('--testPathPattern')) {
+		if (
+			(isCI && !flag.startsWith('-')) ||
+			flag.startsWith('--testPathPattern')
+		) {
 			throw new Error(`Jest test patterns cannot be overridden`)
 		}
 
