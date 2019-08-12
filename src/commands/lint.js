@@ -18,8 +18,6 @@ import { findSourceFiles } from '../glob'
 import { ttywrite } from '../utils'
 
 const debug = createDebug('wiz')
-const isDevelopmentEnv =
-	(process.env.NODE_ENV || 'development') === 'development'
 const cacheLocation = path.join(mainDirectory, 'lintcache.json')
 
 export const lintFlags = {
@@ -92,18 +90,18 @@ async function lintFile({ cache, engine, file, mtime }) {
 	performance.mark('endReadFile')
 	performance.measure('file read', 'startReadFile', 'endReadFile')
 
-	ttywrite(`\r${ansi.eraseEndLine}${file}`)
+	ttywrite(file)
 	performance.mark('startLint')
 	const fileReport = engine.executeOnText(source, filepath)
 	performance.mark('endLint')
 	performance.measure('lint', 'startLint', 'endLint')
 
 	if (
-		isDevelopmentEnv &&
+		!isCI &&
 		fileReport.results.length > 0 &&
 		Reflect.has(fileReport.results[0], 'output')
 	) {
-		ttywrite('\n')
+		ttywrite(file + '\n')
 		performance.mark('startWriteFile')
 		await writeFile(filepath, fileReport.results[0].output)
 		performance.mark('endWriteFile')
