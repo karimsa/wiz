@@ -1,4 +1,5 @@
 import * as path from 'path'
+import { spawn } from 'child_process'
 
 import ms from 'ms'
 import * as rollup from 'rollup'
@@ -14,6 +15,59 @@ import * as perf from '../perf'
 import { ttywrite } from '../utils'
 
 const nodeVersion = '8'
+
+function createChildProcess(entrypoint) {
+	return new Promise(resolve => {
+		const child = spawn(process.execPath, [entrypoint], {
+			stdio: ['ignore', 'pipe', 'inherit'],
+		})
+		child.isRunning = true
+
+		let processStarted = false
+		child.stdout.on('data', chunk => {
+			if (!processStarted) {
+				processStarted = true
+				resolve(child)
+			}
+			process.stdout.write(chunk.toString('utf8'))
+		})
+
+		child.on('exit', code => {
+			child.isRunning = false
+			if (code !== 0) {
+				console.error(`[wiz] Process exited with code: ${code}`)
+			}
+		})
+	})
+}
+
+async function runInWatchMode(entrypoint) {
+	let child = await createChildProcess(entrypoint)
+
+	return {
+		async restart() {
+			await this.kill()
+			child = await createChildProcess(entrypoint)
+		},
+
+		kill() {
+			return new Promise((resolve, reject) => {
+				if (!child.isRunning) {
+					return resolve()
+				}
+
+				child.on('exit', code => {
+					if (code === 0) {
+						resolve()
+					} else {
+						reject(new Error(`Process exited with ${code}`))
+					}
+				})
+				child.kill('SIGKILL')
+			})
+		},
+	}
+}
 
 /**
  * **Usage**
@@ -84,17 +138,24 @@ export async function buildCommand(argv) {
 	})
 
 	if (watchMode) {
-		await new Promise((resolve, reject) => {
-			let bundleStartTime
+		const child = await runInWatchMode(outputFile)
 
-			bundle.on('event', event => {
+		await new Promise((resolve, reject) => {
+			let bundleStartTime = Date.now()
+
+			bundle.on('event', async event => {
 				switch (event.code) {
 					case 'BUNDLE_START':
 						bundleStartTime = Date.now()
-						ttywrite('Bundling ...')
+						ttywrite('[wiz] Bundling ...')
 						break
 					case 'BUNDLE_END':
-						ttywrite(`Bundled in ${ms(Date.now() - bundleStartTime)}.`)
+						ttywrite(`[wiz] Bundled in ${ms(Date.now() - bundleStartTime)}.\n`)
+						try {
+							await child.restart()
+						} catch (error) {
+							return reject(error)
+						}
 						break
 					case 'FATAL':
 						return reject(event.error)
@@ -103,10 +164,7 @@ export async function buildCommand(argv) {
 						break
 				}
 			})
-			process.on('SIGINT', () => {
-				ttywrite('')
-				resolve()
-			})
+			process.on('SIGINT', resolve)
 		})
 
 		await bundle.close()
