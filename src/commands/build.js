@@ -1,6 +1,7 @@
 import * as path from 'path'
 
-import { rollup } from 'rollup'
+import ms from 'ms'
+import * as rollup from 'rollup'
 import MagicString from 'magic-string'
 import rollupBabel from 'rollup-plugin-babel'
 import rollupJSON from 'rollup-plugin-json'
@@ -10,6 +11,7 @@ import terser from 'terser'
 
 import { chmod } from '../fs'
 import * as perf from '../perf'
+import { ttywrite } from '../utils'
 
 const nodeVersion = '8'
 
@@ -62,6 +64,7 @@ export async function buildCommand(argv) {
 		process.cwd(),
 		path.parse(inputFile).name + '.dist.js',
 	)
+	const watchMode = Boolean(argv.watch || argv.run)
 
 	if (inputFile.endsWith('index.js')) {
 		throw new Error(`The filename 'index.js' is not allowed for entrypoints`)
@@ -74,80 +77,50 @@ export async function buildCommand(argv) {
 		throw new Error(`Non-source found, refusing to build: '${inputFile}'`)
 	}
 
-	const bundle = await perf.measure('bundle create', () =>
-		rollup({
-			perf: argv.debug,
-			input: inputFile,
-			external(id) {
-				return id[0] !== '.' && id[0] !== '/'
-			},
-			plugins: [
-				rollupCommonJS(),
-				rollupJSON(),
-				rollupReplace({
-					...env,
-					'process.env.NODE_ENV': '"production"',
-				}),
-				rollupBabel({
-					minified: false,
-					babelrc: false,
-					comments: false,
-					plugins: [require.resolve('babel-plugin-macros')],
-					presets: [
-						[
-							require.resolve('@babel/preset-env'),
-							{
-								targets: {
-									node: nodeVersion,
-								},
-							},
-						],
-					],
-				}),
-				{
-					name: 'rollup-plugin-terser',
-					renderChunk(code, chunk, options) {
-						if (!chunk.filename) {
-							return null
-						}
-
-						return terser.minify(code, {
-							toplevel: true,
-							mangle: false,
-							sourceMap: options.sourcemap,
-							compress: {
-								pure_funcs: ['path.resolve', 'process.cwd'],
-							},
-							output: {
-								beautify: true,
-							},
-						})
-					},
-				},
-				{
-					name: 'add-shebang',
-					renderChunk(code, _, { sourcemap }) {
-						const str = new MagicString(code)
-						str.prepend('#!/usr/bin/env node\n')
-						return {
-							code: str.toString(),
-							map: sourcemap ? str.generateMap({ hires: true }) : undefined,
-						}
-					},
-				},
-			],
-		}),
-	)
-
-	await perf.measure('bundle write', async () => {
-		await bundle.write({
-			file: outputFile,
-			format: 'cjs',
-		})
-		await chmod(outputFile, 0o700)
+	const bundle = await createBundle(watchMode, {
+		input: inputFile,
+		output: outputFile,
+		env,
 	})
 
-	if (argv.debug) {
+	if (watchMode) {
+		await new Promise((resolve, reject) => {
+			let bundleStartTime
+
+			bundle.on('event', event => {
+				switch (event.code) {
+					case 'BUNDLE_START':
+						bundleStartTime = Date.now()
+						ttywrite('Bundling ...')
+						break
+					case 'BUNDLE_END':
+						ttywrite(`Bundled in ${ms(Date.now() - bundleStartTime)}.`)
+						break
+					case 'FATAL':
+						return reject(event.error)
+					case 'ERROR':
+						console.error(event)
+						break
+				}
+			})
+			process.on('SIGINT', () => {
+				ttywrite('')
+				resolve()
+			})
+		})
+
+		await bundle.close()
+	} else {
+		await perf.measure('bundle write', async () => {
+			await bundle.write({
+				file: outputFile,
+				format: 'cjs',
+			})
+			await chmod(outputFile, 0o700)
+		})
+	}
+
+	if (perf.shouldMeasurePerf()) {
 		const perfEntries = []
 		const timings = bundle.getTimings()
 
@@ -217,9 +190,101 @@ export const buildFlags = {
 	output: {
 		type: 'string',
 		alias: 'o',
+		describe: 'Path to the output file to write bundle into',
 	},
 	env: {
 		type: 'string',
 		alias: 'e',
+		describe:
+			'Multiple key-value pairs to override env variables (i.e. --env KEY=VALUE)',
 	},
+	watch: {
+		type: 'boolean',
+		alias: 'w',
+		describe: 'Starts builder in watch mode',
+	},
+	run: {
+		type: 'boolean',
+		alias: 'r',
+		describe: 'Starts builder in run & watch mode',
+	},
+}
+
+/**
+ * (Internal) Creates a rollup bundle with the pipeline preset.
+ *
+ * @param {String} options.input path to the input file
+ * @param {Object} options.env key to value mapping for env variable overrides
+ */
+export async function createBundle(watchMode, { input, output, env }) {
+	return perf.measure('bundle create', () =>
+		(watchMode ? rollup.watch : rollup.rollup)({
+			perf: perf.shouldMeasurePerf(),
+			input,
+			output: watchMode
+				? {
+						file: output,
+						format: 'cjs',
+				  }
+				: undefined,
+			external(id) {
+				return id[0] !== '.' && id[0] !== '/'
+			},
+			plugins: [
+				rollupCommonJS(),
+				rollupJSON(),
+				rollupReplace({
+					...env,
+					'process.env.NODE_ENV': '"production"',
+				}),
+				rollupBabel({
+					minified: false,
+					babelrc: false,
+					comments: false,
+					plugins: [require.resolve('babel-plugin-macros')],
+					presets: [
+						[
+							require.resolve('@babel/preset-env'),
+							{
+								targets: {
+									node: nodeVersion,
+								},
+							},
+						],
+					],
+				}),
+				{
+					name: 'rollup-plugin-terser',
+					renderChunk(code, chunk, options) {
+						if (!chunk.filename) {
+							return null
+						}
+
+						return terser.minify(code, {
+							toplevel: true,
+							mangle: false,
+							sourceMap: options.sourcemap,
+							compress: {
+								pure_funcs: ['path.resolve', 'process.cwd'],
+							},
+							output: {
+								beautify: true,
+							},
+						})
+					},
+				},
+				{
+					name: 'add-shebang',
+					renderChunk(code, _, { sourcemap }) {
+						const str = new MagicString(code)
+						str.prepend('#!/usr/bin/env node\n')
+						return {
+							code: str.toString(),
+							map: sourcemap ? str.generateMap({ hires: true }) : undefined,
+						}
+					},
+				},
+			],
+		}),
+	)
 }
