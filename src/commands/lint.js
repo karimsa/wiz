@@ -15,6 +15,7 @@ import { version } from '../../package.json'
 import { CurrentNodeEnv, mainDirectory, isCI } from '../config'
 import { readFile, writeFile, readdir } from '../fs'
 import { findSourceFiles } from '../glob'
+import { ttywrite } from '../utils'
 
 const debug = createDebug('wiz')
 const isDevelopmentEnv =
@@ -33,12 +34,6 @@ function initCache(reason) {
 		version,
 		eslint: {},
 		readdir: {},
-	}
-}
-
-function ttywrite(str) {
-	if (process.stdout.isTTY && !debug.enabled && !isCI) {
-		process.stdout.write(str)
 	}
 }
 

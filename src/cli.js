@@ -21,6 +21,7 @@ import yargs from 'yargs'
 import * as pkg from '../package.json'
 import * as performance from './perf'
 import { setup } from './setup'
+import { ttywrite } from './utils'
 import { lintCommand, lintFlags } from './commands/lint'
 import { buildCommand, buildFlags } from './commands/build'
 import { testCommand, testFlags } from './commands/test'
@@ -113,6 +114,6 @@ main()
 		}
 	})
 	.catch(err => {
-		console.error(err.stack)
+		ttywrite(process.stderr, String(err.stack || err))
 		process.exit(1)
 	})
