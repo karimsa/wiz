@@ -7,6 +7,12 @@ import { v4 as uuid } from 'uuid'
 const events = new Map()
 const startTime = Date.now()
 
+let perfHooksEnabled = false
+
+export function shouldMeasurePerf() {
+	return perfHooksEnabled
+}
+
 export async function measure(eventName, fn) {
 	const id = uuid()
 	performance.mark(`start-${eventName}-${id}`)
@@ -36,6 +42,8 @@ export function observeEntries(entries) {
 }
 
 export function enableHooks() {
+	perfHooksEnabled = true
+
 	new PerformanceObserver(items => {
 		observeEntries(items.getEntries())
 	}).observe({ entryTypes: ['measure'] })
