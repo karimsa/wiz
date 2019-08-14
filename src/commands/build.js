@@ -314,7 +314,8 @@ export async function createBundle(watchMode, { input, output, env }) {
 				{
 					name: 'rollup-plugin-terser',
 					renderChunk(code, chunk, options) {
-						if (!chunk.filename) {
+						if (!chunk.fileName) {
+							console.warn(`Skipping minification of: %O`, chunk)
 							return null
 						}
 
