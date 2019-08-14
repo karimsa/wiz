@@ -1,10 +1,12 @@
 // For documentation on benchmarks, please see: `src/commands/bench.js`
 
+import createDebug from 'debug'
 import * as ansi from 'ansi-escapes'
 
+const debug = createDebug('wiz')
+let benchmarksScheduled = false
 let onlyAcceptOnlys = false
 let registeredBenchmarks = new Map()
-let benchmarksScheduled = false
 let longestBenchmarkTitleLength = 0
 
 const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
@@ -62,19 +64,46 @@ function prettyNumber(num) {
 	return string.trimLeft()
 }
 
-async function runAllBenchmarks() {
-	const { maxRunTime, maxIterations } = benchConfig
-	const growthFn = benchConfig.growthFn === 'fibonacci' ? fibonacci : magnitude
+function isDefined(value) {
+	return value !== undefined && value !== null
+}
+
+function loadBenchConfig() {
+	const config = {
+		growthFn: magnitude,
+		benchTime: 1000,
+		maxIterations: Infinity,
+	}
+
+	if (config.growthFn === 'fibonacci') {
+		config.growthFn = fibonacci
+	}
+	if (isDefined(benchConfig.benchTime)) {
+		config.benchTime = benchConfig.benchTime
+	}
+	if (isDefined(benchConfig.maxIterations)) {
+		config.maxIterations = benchConfig.maxIterations
+	}
+
+	debug(`Benchmark config loaded => %O`, config)
+	return config
+}
+
+export async function runAllBenchmarks() {
+	const { benchTime, maxIterations, growthFn } = loadBenchConfig()
 	let allBenchmarksSucceeded = true
 
 	for (const [title, handlers] of registeredBenchmarks.entries()) {
 		try {
 			let startTime
+			let endTime
 			let avgDurationPerOp = 0
+			let avgOpsPerSecond = 0
 			let numTotalRuns = 0
 			let numIterations = 1
 			let runNumber = 1
 			let numIterationsWasChecked
+			let timerIsRunning = true
 
 			const b = {
 				N() {
@@ -83,6 +112,16 @@ async function runAllBenchmarks() {
 				},
 				resetTimer() {
 					startTime = Date.now()
+					timerIsRunning = true
+					debug(`Timer reset to: ${startTime}`)
+				},
+				stopTimer() {
+					if (!timerIsRunning) {
+						throw new Error(`Timer stopped twice`)
+					}
+					endTime = Date.now()
+					timerIsRunning = false
+					debug(`Timer stopped at: ${endTime} (+${endTime - startTime}ms)`)
 				},
 			}
 
@@ -103,6 +142,9 @@ async function runAllBenchmarks() {
 				)
 				b.resetTimer()
 				await fn.apply(global, args)
+				if (timerIsRunning) {
+					b.stopTimer()
+				}
 
 				if (!numIterationsWasChecked) {
 					throw new Error(
@@ -110,26 +152,36 @@ async function runAllBenchmarks() {
 					)
 				}
 
-				const duration = Date.now() - startTime
+				const duration = endTime - startTime
+				process.stderr.write('\r')
+				debug(`${title} completed with N = ${numIterations} in ${duration}`)
 
 				avgDurationPerOp += duration / numIterations
+				avgOpsPerSecond += 1000 / (duration / numIterations)
 				numTotalRuns++
 
-				if (duration >= maxRunTime || numIterations >= maxIterations) {
+				if (duration >= benchTime || numIterations >= maxIterations) {
+					debug(
+						`${title} benchmark concluded (duration: ${duration}; iterations: ${numIterations}; config: %O)`,
+						{
+							benchTime,
+							maxIterations,
+							growthFn,
+						},
+					)
 					break
 				}
 
 				numIterations = growthFn(++runNumber)
 			}
 
-			const lastDuration = (Date.now() - startTime) / 1000
 			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
 			const postTitleSpacing = ' '.repeat(
 				longestBenchmarkTitleLength - title.length + 4,
 			)
 			console.log(
 				`\r${ansi.eraseEndLine}\t${title}${postTitleSpacing}${prettyNumber(
-					Math.floor(numIterations / lastDuration),
+					Math.floor(avgOpsPerSecond / numTotalRuns),
 				)} ops/s\t${time} ${unit}/op`,
 			)
 		} catch (error) {

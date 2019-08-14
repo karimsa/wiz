@@ -88,7 +88,7 @@ export async function benchCommand(argv) {
 
 	process.env.WIZ_BENCH = JSON.stringify({
 		growthFn: argv.growth,
-		maxRunTime: argv.benchTime,
+		benchTime: argv.benchTime,
 		maxIterations: argv.benchRuns,
 	})
 
@@ -117,7 +117,7 @@ export async function benchCommand(argv) {
 		if (shard.length) {
 			goals.push(
 				new Promise((resolve, reject) => {
-					const args = ['-e', '"void 0"']
+					const args = ['-e', 'void 0']
 
 					shard.forEach(file => {
 						args.unshift(file)
@@ -140,11 +140,9 @@ export async function benchCommand(argv) {
 						if (code === 0) {
 							resolve()
 						} else {
-							reject(
-								Object.assign(new Error(), {
-									code: 'CHILD_PROCESS',
-								}),
-							)
+							const error = new Error()
+							error.code = 'CHILD_PROCESS'
+							reject(error)
 						}
 					})
 				}),
@@ -247,7 +245,7 @@ export const benchFlags = {
 	benchRuns: {
 		type: 'number',
 		alias: 'r',
-		default: Infinity,
-		describe: 'Maximum number of iterations to allow for a benchmark',
+		describe:
+			'Maximum number of iterations to allow for a benchmark (default: Infinity)',
 	},
 }
