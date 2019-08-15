@@ -72,6 +72,7 @@ function loadBenchConfig() {
 	const config = {
 		growthFn: magnitude,
 		benchTime: 1000,
+		minIterations: 1,
 		maxIterations: Infinity,
 	}
 
@@ -80,6 +81,9 @@ function loadBenchConfig() {
 	}
 	if (isDefined(benchConfig.benchTime)) {
 		config.benchTime = benchConfig.benchTime
+	}
+	if (isDefined(benchConfig.minIterations)) {
+		config.minIterations = benchConfig.minIterations
 	}
 	if (isDefined(benchConfig.maxIterations)) {
 		config.maxIterations = benchConfig.maxIterations
@@ -90,7 +94,12 @@ function loadBenchConfig() {
 }
 
 export async function runAllBenchmarks() {
-	const { benchTime, maxIterations, growthFn } = loadBenchConfig()
+	const {
+		benchTime,
+		minIterations,
+		maxIterations,
+		growthFn,
+	} = loadBenchConfig()
 	let allBenchmarksSucceeded = true
 
 	for (const [title, handlers] of registeredBenchmarks.entries()) {
@@ -100,7 +109,7 @@ export async function runAllBenchmarks() {
 			let avgDurationPerOp = 0
 			let avgOpsPerSecond = 0
 			let numTotalRuns = 0
-			let numIterations = 1
+			let numIterations = minIterations
 			let runNumber = 1
 			let numIterationsWasChecked
 			let timerIsRunning = true

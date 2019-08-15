@@ -89,7 +89,8 @@ export async function benchCommand(argv) {
 	process.env.WIZ_BENCH = JSON.stringify({
 		growthFn: argv.growth,
 		benchTime: argv.benchTime,
-		maxIterations: argv.benchRuns,
+		minIterations: argv.minIterations,
+		maxIterations: argv.maxIterations,
 	})
 
 	let targetShard = 0
@@ -242,10 +243,15 @@ export const benchFlags = {
 		describe: 'Maximum time to let a benchmark run before ending the benchmark',
 	},
 
-	benchRuns: {
+	maxIterations: {
 		type: 'number',
-		alias: 'r',
 		describe:
 			'Maximum number of iterations to allow for a benchmark (default: Infinity)',
+	},
+
+	minIterations: {
+		type: 'number',
+		describe:
+			'Minimum number of iterations to allow for a benchmark (default: 1)',
 	},
 }
