@@ -2,12 +2,14 @@
 
 import createDebug from 'debug'
 import * as ansi from 'ansi-escapes'
+import * as microtime from 'microtime'
 
 const debug = createDebug('wiz')
 let benchmarksScheduled = false
 let onlyAcceptOnlys = false
 let registeredBenchmarks = new Map()
 let longestBenchmarkTitleLength = 0
+let benchmarkRunningHasBegun = false
 
 const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
 
@@ -32,20 +34,25 @@ function magnitude(n) {
 }
 
 function ms(time) {
-	if (time >= 1000 * 60) {
+	if (time >= 1000 * 1000 * 60) {
 		return {
-			time: Math.round((time / (1000 * 60)) * 10) / 10,
+			time: Math.round((time / (1000 * 1000 * 60)) * 10) / 10,
 			unit: 'm',
+		}
+	} else if (time >= 1000 * 1000) {
+		return {
+			time: Math.round((time / (1000 * 1000)) * 10) / 10,
+			unit: 's',
 		}
 	} else if (time >= 1000) {
 		return {
 			time: Math.round((time / 1000) * 10) / 10,
-			unit: 's',
+			unit: 'ms',
 		}
 	}
 	return {
 		time: Math.round(time * 10) / 10,
-		unit: 'ms',
+		unit: 'µs',
 	}
 }
 
@@ -71,7 +78,7 @@ function isDefined(value) {
 function loadBenchConfig() {
 	const config = {
 		growthFn: magnitude,
-		benchTime: 1000,
+		benchTime: 1000 * 1000,
 		minIterations: 1,
 		maxIterations: Infinity,
 	}
@@ -101,8 +108,15 @@ export async function runAllBenchmarks() {
 		growthFn,
 	} = loadBenchConfig()
 	let allBenchmarksSucceeded = true
+	benchmarkRunningHasBegun = true
 
-	for (const [title, handlers] of registeredBenchmarks.entries()) {
+	// sort so that like-named benchmarks are next to each other for easier
+	// comparison
+	const entries = Array.from(registeredBenchmarks.entries()).sort((a, b) => {
+		return a[0] >= b[0] ? 1 : -1
+	})
+
+	for (const [title, handlers] of entries) {
 		try {
 			let startTime
 			let endTime
@@ -120,7 +134,7 @@ export async function runAllBenchmarks() {
 					return numIterations
 				},
 				resetTimer() {
-					startTime = Date.now()
+					startTime = microtime.now()
 					timerIsRunning = true
 					debug(`Timer reset to: ${startTime}`)
 				},
@@ -128,9 +142,9 @@ export async function runAllBenchmarks() {
 					if (!timerIsRunning) {
 						throw new Error(`Timer stopped twice`)
 					}
-					endTime = Date.now()
+					endTime = microtime.now()
 					timerIsRunning = false
-					debug(`Timer stopped at: ${endTime} (+${endTime - startTime}ms)`)
+					debug(`Timer stopped at: ${endTime} (+${endTime - startTime}µs)`)
 				},
 			}
 
@@ -166,7 +180,9 @@ export async function runAllBenchmarks() {
 				debug(`${title} completed with N = ${numIterations} in ${duration}`)
 
 				avgDurationPerOp += duration / numIterations
-				avgOpsPerSecond += 1000 / (duration / numIterations)
+				if (duration > 0) {
+					avgOpsPerSecond += (1000 * 1000) / (duration / numIterations)
+				}
 				numTotalRuns++
 
 				if (duration >= benchTime || numIterations >= maxIterations) {
@@ -185,13 +201,14 @@ export async function runAllBenchmarks() {
 			}
 
 			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
+			const opsLog = `${prettyNumber(
+				Math.floor(avgOpsPerSecond / numTotalRuns),
+			)} ops/s`
 			const postTitleSpacing = ' '.repeat(
 				longestBenchmarkTitleLength - title.length + 4,
 			)
 			console.log(
-				`\r${ansi.eraseEndLine}\t${title}${postTitleSpacing}${prettyNumber(
-					Math.floor(avgOpsPerSecond / numTotalRuns),
-				)} ops/s\t${time} ${unit}/op`,
+				`\r${ansi.eraseEndLine}\t${title}${postTitleSpacing}${opsLog}\t${time} ${unit}/op`,
 			)
 		} catch (error) {
 			allBenchmarksSucceeded = false
@@ -215,9 +232,18 @@ export async function runAllBenchmarks() {
 }
 
 function addBenchmark(title, handlers) {
+	if (benchmarkRunningHasBegun) {
+		throw new Error(
+			`Benchmark "${title}" registered after execution has already begun`,
+		)
+	}
 	if (registeredBenchmarks.has(title)) {
 		throw new Error(`Duplicate benchmark registered with title: '${title}'`)
 	}
+	longestBenchmarkTitleLength = Math.max(
+		longestBenchmarkTitleLength,
+		title.length,
+	)
 	registeredBenchmarks.set(title, handlers)
 }
 
@@ -271,9 +297,6 @@ export const benchmark = Object.assign(
 	function(title, ...handlers) {
 		if (!onlyAcceptOnlys) {
 			addBenchmark(title, handlers)
-			if (title.length > longestBenchmarkTitleLength) {
-				longestBenchmarkTitleLength = title.length
-			}
 		}
 		if (!benchmarksScheduled) {
 			benchmarksScheduled = true
@@ -288,9 +311,6 @@ export const benchmark = Object.assign(
 				longestBenchmarkTitleLength = 0
 			}
 			addBenchmark(title, handlers)
-			if (title.length > longestBenchmarkTitleLength) {
-				longestBenchmarkTitleLength = title.length
-			}
 			if (!benchmarksScheduled) {
 				benchmarksScheduled = true
 				process.nextTick(runAllBenchmarks)
