@@ -4,6 +4,10 @@ import createDebug from 'debug'
 import * as ansi from 'ansi-escapes'
 import * as microtime from 'microtime'
 
+const TableUtils = require('cli-table/lib/utils')
+TableUtils.truncate = str => str
+const Table = require('cli-table')
+
 const debug = createDebug('wiz')
 let benchmarksScheduled = false
 let onlyAcceptOnlys = false
@@ -11,7 +15,40 @@ let registeredBenchmarks = new Map()
 let longestBenchmarkTitleLength = 0
 let benchmarkRunningHasBegun = false
 
+const cliTable = new Table({
+	chars: {
+		top: '',
+		'top-mid': '',
+		'top-left': '',
+		'top-right': '',
+		bottom: '',
+		'bottom-mid': '',
+		'bottom-left': '',
+		'bottom-right': '',
+		left: '',
+		'left-mid': '',
+		mid: '',
+		'mid-mid': '',
+		right: '',
+		'right-mid': '',
+		middle: ' ',
+	},
+	colAligns: ['left', 'right', 'right'],
+})
+
 const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
+
+function appendTable(row) {
+	cliTable.push(row)
+
+	process.stdout.write('\r' + ansi.eraseEndLine)
+	if (cliTable.length > 1) {
+		process.stdout.write(ansi.cursorUp(cliTable.length - 1))
+	}
+
+	process.stdout.write(cliTable.toString() + '\n')
+	cliTable.options.colWidths = []
+}
 
 function fibonacci(n) {
 	if (n <= 2) {
@@ -201,15 +238,11 @@ export async function runAllBenchmarks() {
 			}
 
 			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
-			const opsLog = `${prettyNumber(
-				Math.floor(avgOpsPerSecond / numTotalRuns),
-			)} ops/s`
-			const postTitleSpacing = ' '.repeat(
-				longestBenchmarkTitleLength - title.length + 4,
-			)
-			console.log(
-				`\r${ansi.eraseEndLine}\t${title}${postTitleSpacing}${opsLog}\t${time} ${unit}/op`,
-			)
+			appendTable([
+				'\t' + title,
+				prettyNumber(Math.floor(avgOpsPerSecond / numTotalRuns)) + ' ops/s',
+				`${time} ${unit}/op`,
+			])
 		} catch (error) {
 			allBenchmarksSucceeded = false
 			console.error(
