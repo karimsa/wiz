@@ -1,4 +1,3 @@
-import * as os from 'os'
 import * as path from 'path'
 import { spawn } from 'child_process'
 
@@ -52,11 +51,8 @@ const debug = createDebug('wiz')
  * `node src/__bench__/bench-my-benchmark.js`). However, when you run `wiz bench`, it will only run benchmarks in
  * files that match the glob `src/**\/__bench__/bench-*.js`.
  *
- * Benchmarks are executed serially within the node process. Files are split between different node processes for
- * performance. This means that serial execution is guaranteed between benchmarks in a single file but not for
- * benchmarks across files. Generally speaking, benchmarks should be written like test cases: isolated and
- * concurrency-safe. In the future, the benchmark runner may execute benchmarks within the same file in parallel
- * too but never concurrently, to avoid sharing process resources in between benchmarks.
+ * Benchmarks are executed serially within the node process to ensure that parallel tasks do not interfere with benchmark
+ * results.
  *
  * As a side note, the benchmark runner does not cache anything at all so every call to the runner will execute a
  * fresh benchmark run.
@@ -84,7 +80,6 @@ const debug = createDebug('wiz')
  */
 export async function benchCommand(argv) {
 	const runProfiler = Boolean(argv.profile)
-	const runSerially = Boolean(argv.serial || runProfiler)
 
 	process.env.WIZ_BENCH = JSON.stringify({
 		growthFn: argv.growth,
@@ -93,66 +88,46 @@ export async function benchCommand(argv) {
 		maxIterations: argv.maxIterations,
 	})
 
-	let targetShard = 0
-	let numBenchFiles = 0
-	const numCPUs = os.cpus().length
-	const fileShards = runSerially ? [[]] : [...new Array(numCPUs)].map(() => [])
+	try {
+		await new Promise(async (resolve, reject) => {
+			try {
+				const args = ['-e', 'void 0']
 
-	for await (const { file, type } of findSourceFiles({
-		directory: path.join(process.cwd(), 'src'),
-		cache: {},
-	})) {
-		if (type === 'benchmark') {
-			++numBenchFiles
-			fileShards[targetShard].push(file)
-
-			if (++targetShard === fileShards.length) {
-				targetShard = 0
-			}
-		}
-	}
-	debug(`Sharded ${numBenchFiles} benchmark files across ${numCPUs} processes`)
-
-	const goals = []
-	fileShards.forEach(shard => {
-		if (shard.length) {
-			goals.push(
-				new Promise((resolve, reject) => {
-					const args = ['-e', 'void 0']
-
-					shard.forEach(file => {
+				for await (const { file, type } of findSourceFiles({
+					directory: path.join(process.cwd(), 'src'),
+					cache: {},
+				})) {
+					if (type === 'benchmark') {
 						args.unshift(file)
 						args.unshift('--require')
-					})
-
-					if (runProfiler) {
-						args.unshift(require.resolve('./register-profiler.dist.js'))
-						args.unshift('--require')
 					}
+				}
 
-					debug(`Spawning benchmark process: %O`, {
-						args,
-					})
-					const child = spawn(process.execPath, args, {
-						stdio: 'inherit',
-					})
+				if (runProfiler) {
+					args.unshift(require.resolve('./register-profiler.dist.js'))
+					args.unshift('--require')
+				}
 
-					child.on('close', code => {
-						if (code === 0) {
-							resolve()
-						} else {
-							const error = new Error()
-							error.code = 'CHILD_PROCESS'
-							reject(error)
-						}
-					})
-				}),
-			)
-		}
-	})
+				debug(`Spawning benchmark process: %O`, {
+					args,
+				})
+				const child = spawn(process.execPath, args, {
+					stdio: 'inherit',
+				})
 
-	try {
-		await Promise.all(goals)
+				child.on('close', code => {
+					if (code === 0) {
+						resolve()
+					} else {
+						const error = new Error()
+						error.code = 'CHILD_PROCESS'
+						reject(error)
+					}
+				})
+			} catch (error) {
+				reject(error)
+			}
+		})
 	} catch (error) {
 		if (error.code !== 'CHILD_PROCESS') {
 			throw error
@@ -169,20 +144,10 @@ export async function benchCommand(argv) {
  * information on the flags, you should run `wiz bench --help`. For less formal
  * information, here are some examples.
  *
- *
- * **Run benchmarks in a single process**
- *
- * By default, `wiz bench` executes benchmarks in parallel by creating parallel workers
- * and sharding different benchmark files across the workers. If this behavior is not
- * desirable (such as if you have your parallel code to test or cannot isolate the
- * benchmark side effects), then you can use the `--serial` flag to force execution
- * within a single process.
- *
  * **Finding bottlenecks in your code**
  *
  * There's a few different ways to profile your benchmark execution. The simplest is
- * to use the builtin profiler using the `--profile` flag. This always implies the `--serial`
- * flag so that the profiler output results make sense. However, it is a good practice to add
+ * to use the builtin profiler using the `--profile` flag. It is a good practice to add
  * `.only()` to the specific benchmarks that you want to profile. This will allow you to
  * isolate the profiler output to a single case.
  *
@@ -221,19 +186,11 @@ export const benchFlags = {
 		describe: 'Growth function to use for number of iterations',
 	},
 
-	serial: {
-		type: 'boolean',
-		alias: 's',
-		default: false,
-		describe: 'Forces serial execution of benchmarks',
-	},
-
 	profile: {
 		type: 'boolean',
 		alias: 'p',
 		default: false,
-		describe:
-			'Enables the wiz profiler during benchmark runs (implies --serial)',
+		describe: 'Enables the wiz profiler during benchmark runs',
 	},
 
 	benchTime: {
