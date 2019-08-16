@@ -9,6 +9,8 @@ TableUtils.truncate = str => str
 const Table = require('cli-table')
 
 const debug = createDebug('wiz')
+const kHasRunSerially = Symbol('kHasRunSerially')
+
 let benchmarksScheduled = false
 let onlyAcceptOnlys = false
 let registeredBenchmarks = new Map()
@@ -153,7 +155,9 @@ export async function runAllBenchmarks() {
 		return a[0] >= b[0] ? 1 : -1
 	})
 
-	for (const [title, handlers] of entries) {
+	for (let i = 0; i < entries.length; ++i) {
+		const [title, handlers] = entries[i]
+
 		try {
 			let startTime
 			let endTime
@@ -164,11 +168,32 @@ export async function runAllBenchmarks() {
 			let runNumber = 1
 			let numIterationsWasChecked
 			let timerIsRunning = true
+			let ranSerially = false
 
 			const b = {
 				N() {
 					numIterationsWasChecked = true
 					return numIterations
+				},
+				async runConcurrently(fn) {
+					if (handlers[kHasRunSerially]) {
+						const goals = new Array(b.N())
+						for (let i = 0; i < goals.length; ++i) {
+							goals[i] = fn(i)
+						}
+						await Promise.all(goals)
+					} else {
+						ranSerially = true
+						handlers[kHasRunSerially] = true
+
+						// reset the index of the entry so benchmark
+						// will repeat
+						i--
+
+						for (let i = 0; i < b.N(); ++i) {
+							await fn(i)
+						}
+					}
 				},
 				resetTimer() {
 					startTime = microtime.now()
@@ -185,11 +210,11 @@ export async function runAllBenchmarks() {
 				},
 			}
 
-			const fn = handlers.pop()
+			const fn = handlers[handlers.length - 1]
 			let args = [b]
 
 			process.stdout.write(`\r${ansi.eraseEndLine}preparing: ${title}`)
-			for (let i = 0; i < handlers.length; i++) {
+			for (let i = 0; i < handlers.length - 1; i++) {
 				args = await handlers[i](args)
 			}
 
@@ -239,7 +264,13 @@ export async function runAllBenchmarks() {
 
 			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
 			appendTable([
-				'\t' + title,
+				'\t' +
+					title +
+					(ranSerially
+						? ' (serial)'
+						: handlers[kHasRunSerially]
+						? ' (concurrent)'
+						: ''),
 				prettyNumber(Math.floor(avgOpsPerSecond / numTotalRuns)) + ' ops/s',
 				`${time} ${unit}/op`,
 			])
