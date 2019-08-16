@@ -196,8 +196,9 @@ export const benchFlags = {
 	benchTime: {
 		type: 'number',
 		alias: 't',
-		default: 1000,
-		describe: 'Maximum time to let a benchmark run before ending the benchmark',
+		default: 1e6,
+		describe:
+			'Maximum time to let a benchmark run before ending the benchmark (in microseconds)',
 	},
 
 	maxIterations: {
