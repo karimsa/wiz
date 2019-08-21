@@ -51,18 +51,12 @@ async function runInWatchMode(entrypoint) {
 		},
 
 		kill() {
-			return new Promise((resolve, reject) => {
+			return new Promise(resolve => {
 				if (!child.isRunning) {
 					return resolve()
 				}
 
-				child.on('exit', code => {
-					if (code === 0) {
-						resolve()
-					} else {
-						reject(new Error(`Process exited with ${code}`))
-					}
-				})
+				child.on('exit', () => resolve())
 				child.kill('SIGKILL')
 			})
 		},
@@ -119,6 +113,7 @@ export async function buildCommand(argv) {
 		path.parse(inputFile).name + '.dist.js',
 	)
 	const watchMode = Boolean(argv.watch || argv.run)
+	const runMode = Boolean(argv.run)
 
 	if (inputFile.endsWith('index.js')) {
 		throw new Error(`The filename 'index.js' is not allowed for entrypoints`)
@@ -138,7 +133,7 @@ export async function buildCommand(argv) {
 	})
 
 	if (watchMode) {
-		const child = await runInWatchMode(outputFile)
+		const child = runMode ? await runInWatchMode(outputFile) : null
 
 		await new Promise((resolve, reject) => {
 			let bundleStartTime = Date.now()
@@ -151,10 +146,12 @@ export async function buildCommand(argv) {
 						break
 					case 'BUNDLE_END':
 						ttywrite(`[wiz] Bundled in ${ms(Date.now() - bundleStartTime)}.\n`)
-						try {
-							await child.restart()
-						} catch (error) {
-							return reject(error)
+						if (child) {
+							try {
+								await child.restart()
+							} catch (error) {
+								return reject(error)
+							}
 						}
 						break
 					case 'FATAL':
