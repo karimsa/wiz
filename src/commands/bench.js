@@ -108,6 +108,9 @@ export async function benchCommand(argv) {
 					args.unshift('--require')
 				}
 
+				args.unshift(require.resolve('@babel/register'))
+				args.unshift('--require')
+
 				debug(`Spawning benchmark process: %O`, {
 					args,
 				})
