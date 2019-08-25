@@ -103,6 +103,14 @@ function getDocElementType(path) {
 	if (path.isExportNamedDeclaration()) {
 		const declaration = path.get('declaration')
 
+		if (!path.node.declaration) {
+			return path.node.specifiers.map(node => ({
+				type: 'constant',
+				node,
+				id: node.exported,
+			}))
+		}
+
 		if (declaration.isFunctionDeclaration()) {
 			return {
 				type: 'function',
@@ -187,37 +195,38 @@ async function generateDocs(file) {
 			}
 
 			try {
-				const { type, node } = getDocElementType(path)
-				if (!node.id) {
-					throw new Error(`No identifier for node of type ${type}`)
-				}
-				const directives = parseDocString(comments[0].value)
-				const doc = {
-					type,
-					name: node.id.name,
-					directives,
+				const elms = [getDocElementType(path)]
+				if (Array.isArray(elms[0])) {
+					elms.push(...elms.shift())
 				}
 
-				if (directives.type !== undefined) {
-					doc.type = directives.type
-				}
+				elms.forEach(({ id, type, node }) => {
+					node.id = id || node.id
+					if (!node.id) {
+						throw new Error(`No identifier for node of type ${type}`)
+					}
+					const directives = parseDocString(comments[0].value)
+					const doc = {
+						type,
+						name: node.id.name,
+						directives,
+					}
 
-				// if (type === 'function') {
-				// 	if (directives.params.length !== node.params.length) {
-				// 		console.log({ directives, node })
-				// 		throw new Error(`@param is missing for some parameters`)
-				// 	}
+					if (directives.type !== undefined) {
+						doc.type = directives.type
+					}
 
-				// 	if ((node.async || node.generator) && !directives.returns) {
-				// 		throw new Error(
-				// 			`@returns is required for async and generator functions`,
-				// 		)
-				// 	}
-				// }
-
-				docs.push(doc)
+					docs.push(doc)
+				})
 			} catch (error) {
-				throw path.buildCodeFrameError(error.message)
+				const prettyError = path.buildCodeFrameError(error.message)
+				prettyError.stack =
+					prettyError.message +
+					error.stack
+						.split('\n')
+						.slice(1)
+						.join('\n')
+				throw prettyError
 			}
 		},
 	})
@@ -266,13 +275,10 @@ function renderDocSection(doc) {
 			<p>TODO</p>
 			`
 
-		case 'constant':
+		default:
 			return doc.directives.description
 				? `<p class="lead mb-5">${doc.directives.description}</p>`
 				: ''
-
-		default:
-			throw new Error(`Not sure how to render: ${doc.type}`)
 	}
 }
 
