@@ -42,5 +42,6 @@ module.exports = {
 		"node/no-deprecated-api": "off",
 		"promise/param-names": "off",
 		'no-implicit-coercion': 'error',
+		'valid-typeof': 'error',
 	}
 }
