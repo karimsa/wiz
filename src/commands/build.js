@@ -9,6 +9,7 @@ import rollupJSON from 'rollup-plugin-json'
 import rollupReplace from 'rollup-plugin-replace'
 import rollupCommonJS from 'rollup-plugin-commonjs'
 import terser from 'terser'
+import * as ansi from 'ansi-escapes'
 
 import { chmod } from '../fs'
 import * as perf from '../perf'
@@ -114,6 +115,7 @@ export async function buildCommand(argv) {
 	)
 	const watchMode = Boolean(argv.watch || argv.run)
 	const runMode = Boolean(argv.run)
+	const clearScreen = Boolean(argv.clear)
 
 	if (inputFile.endsWith('index.js')) {
 		throw new Error(`The filename 'index.js' is not allowed for entrypoints`)
@@ -148,6 +150,9 @@ export async function buildCommand(argv) {
 						ttywrite(`[wiz] Bundled in ${ms(Date.now() - bundleStartTime)}.\n`)
 						if (child) {
 							try {
+								if (clearScreen) {
+									process.stdout.write(ansi.clearTerminal)
+								}
 								await child.restart()
 							} catch (error) {
 								return reject(error)
@@ -263,6 +268,11 @@ export const buildFlags = {
 		alias: 'r',
 		describe: 'Starts builder in run & watch mode',
 	},
+	clear: {
+		type: 'boolean',
+		alias: 'c',
+		describe: 'Clear the screen on rebuild (in run mode)',
+	},
 }
 
 /**
@@ -290,7 +300,9 @@ export async function createBundle(watchMode, { input, output, env }) {
 				rollupJSON(),
 				rollupReplace({
 					...env,
-					'process.env.NODE_ENV': '"production"',
+					'process.env.NODE_ENV': JSON.stringify(
+						process.env.NODE_ENV || (watchMode ? 'development' : 'production'),
+					),
 				}),
 				rollupBabel({
 					minified: false,
