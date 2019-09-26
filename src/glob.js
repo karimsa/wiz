@@ -63,7 +63,7 @@ export async function* findSourceFiles({
 					mtime,
 					type: 'source',
 				}
-				if (!isBenchDirectory && isTestDirectory && file.startsWith('test-')) {
+				if (!isBenchDirectory && isTestDirectory) {
 					yieldInfo.type = 'test'
 				} else if (
 					!isTestDirectory &&
