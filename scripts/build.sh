@@ -28,12 +28,8 @@ node dist/cli.js build src/cli.js
 echo "cli.dist.js - `create_hash cli.dist.js`"
 
 echo ""
-echo "Building: src/register-profiler.js"
-./cli.dist.js build src/register-profiler.js
-
-echo ""
-echo "Building: src/bench.js"
-./cli.dist.js build src/bench.js
+echo "Building: src/register-profiler.js src/bench.js"
+./cli.dist.js build src/register-profiler.js src/bench.js
 
 echo ""
 echo "Building: docs"
