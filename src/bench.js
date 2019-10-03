@@ -120,6 +120,7 @@ function loadBenchConfig() {
 		benchTime: 1000 * 1000,
 		minIterations: 1,
 		maxIterations: Infinity,
+		forceExit: false,
 	}
 
 	if (config.growthFn === 'fibonacci') {
@@ -134,6 +135,9 @@ function loadBenchConfig() {
 	if (isDefined(benchConfig.maxIterations)) {
 		config.maxIterations = benchConfig.maxIterations
 	}
+	if (isDefined(benchConfig.forceExit)) {
+		config.forceExit = benchConfig.forceExit
+	}
 
 	debug(`Benchmark config loaded => %O`, config)
 	return config
@@ -145,6 +149,7 @@ export async function runAllBenchmarks() {
 		minIterations,
 		maxIterations,
 		growthFn,
+		forceExit,
 	} = loadBenchConfig()
 	let allBenchmarksSucceeded = true
 	benchmarkRunningHasBegun = true
@@ -292,6 +297,9 @@ export async function runAllBenchmarks() {
 
 	if (!allBenchmarksSucceeded) {
 		process.exit(1)
+	} else if (forceExit) {
+		console.warn(`warn: forcing exit`)
+		process.exit()
 	}
 }
 

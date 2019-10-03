@@ -86,6 +86,7 @@ export async function benchCommand(argv) {
 		benchTime: argv.benchTime,
 		minIterations: argv.minIterations,
 		maxIterations: argv.maxIterations,
+		forceExit: argv.forceExit,
 	})
 
 	try {
@@ -214,5 +215,11 @@ export const benchFlags = {
 		type: 'number',
 		describe:
 			'Minimum number of iterations to allow for a benchmark (default: 1)',
+	},
+
+	forceExit: {
+		type: 'boolean',
+		default: false,
+		describe: 'Force an exit when all benchmarks are finished running (ignores open handles)',
 	},
 }
