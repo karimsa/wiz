@@ -12,6 +12,7 @@ module.exports = {
 		"no-tabs": "off",
 		"indent": "off",
 		"no-mixed-spaces-and-tabs": "off",
+		"no-control-regex": "off",
 		"comma-dangle": [
 			"error",
 			"always-multiline"
