@@ -220,6 +220,7 @@ export const benchFlags = {
 	forceExit: {
 		type: 'boolean',
 		default: false,
-		describe: 'Force an exit when all benchmarks are finished running (ignores open handles)',
+		describe:
+			'Force an exit when all benchmarks are finished running (ignores open handles)',
 	},
 }

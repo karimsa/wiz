@@ -30,6 +30,7 @@ function initCache(reason) {
 	debug(`Skipping cache load: ${reason}`)
 	return {
 		version,
+		nodeEnv: CurrentNodeEnv,
 		eslint: {},
 		readdir: {},
 	}
@@ -42,7 +43,7 @@ async function loadCache(argv) {
 	}
 
 	// automatically ignore caching for non-development environments
-	if (CurrentNodeEnv !== 'development') {
+	if (CurrentNodeEnv !== 'development' && CurrentNodeEnv !== 'test') {
 		return initCache(`NODE_ENV => ${CurrentNodeEnv}`)
 	}
 
@@ -54,7 +55,12 @@ async function loadCache(argv) {
 	try {
 		const cacheContents = await readFile(cacheLocation)
 		const cache = JSON.parse(cacheContents)
-		if (!cache.eslint || !cache.readdir || cache.version !== version) {
+		if (
+			!cache.eslint ||
+			!cache.readdir ||
+			cache.version !== version ||
+			cache.nodeEnv !== CurrentNodeEnv
+		) {
 			throw new Error()
 		}
 		debug(`Loaded cache from ${cacheLocation}: %O`, cache)
