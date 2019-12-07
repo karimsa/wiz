@@ -44,6 +44,10 @@ const cliTable = new Table({
 const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
 
 function appendTable(row) {
+	if (!process.stdout.isTTY) {
+		return console.log(row.join('\t'))
+	}
+
 	cliTable.push(row)
 
 	process.stdout.write('\r' + ansi.eraseEndLine)
