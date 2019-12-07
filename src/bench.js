@@ -1,5 +1,8 @@
 // For documentation on benchmarks, please see: `src/commands/bench.js`
 
+import { PerformanceObserver } from 'perf_hooks'
+
+import chalk from 'chalk'
 import createDebug from 'debug'
 import * as ansi from 'ansi-escapes'
 import * as microtime from 'microtime'
@@ -121,6 +124,7 @@ function loadBenchConfig() {
 		minIterations: 1,
 		maxIterations: Infinity,
 		forceExit: false,
+		perfHooks: false,
 	}
 
 	if (config.growthFn === 'fibonacci') {
@@ -138,6 +142,9 @@ function loadBenchConfig() {
 	if (isDefined(benchConfig.forceExit)) {
 		config.forceExit = benchConfig.forceExit
 	}
+	if (isDefined(benchConfig.perfHooks)) {
+		config.perfHooks = benchConfig.perfHooks
+	}
 
 	debug(`Benchmark config loaded => %O`, config)
 	return config
@@ -150,6 +157,7 @@ export async function runAllBenchmarks() {
 		maxIterations,
 		growthFn,
 		forceExit,
+		perfHooks,
 	} = loadBenchConfig()
 	let allBenchmarksSucceeded = true
 	benchmarkRunningHasBegun = true
@@ -223,6 +231,25 @@ export async function runAllBenchmarks() {
 				args = await handlers[i](args)
 			}
 
+			let numPerfEvents = 0
+			let numPerfEventTypes = 0
+
+			const perfEvents = new Map()
+			const perfObserver = new PerformanceObserver(events => {
+				events.getEntries().forEach(event => {
+					if (!perfEvents.has(event.name)) {
+						numPerfEventTypes++
+						perfEvents.set(event.name, [])
+					}
+
+					numPerfEvents++
+					perfEvents.get(event.name).push(event.duration)
+				})
+			})
+			perfObserver.observe({
+				entryTypes: ['measure'],
+			})
+
 			while (true) {
 				numIterationsWasChecked = false
 				process.stdout.write(
@@ -267,6 +294,8 @@ export async function runAllBenchmarks() {
 				numIterations = growthFn(++runNumber)
 			}
 
+			perfObserver.disconnect()
+
 			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
 			appendTable([
 				'\t' +
@@ -279,6 +308,31 @@ export async function runAllBenchmarks() {
 				prettyNumber(Math.floor(avgOpsPerSecond / numTotalRuns)) + ' ops/s',
 				`${time} ${unit}/op`,
 			])
+			if (numPerfEventTypes > 0) {
+				if (perfHooks) {
+					for (const [eventType, durations] of perfEvents) {
+						const totalMSDuration = durations.reduce((a, b) => a + b, 0)
+						const { time, unit } = ms(
+							(1e3 * totalMSDuration) / durations.length,
+						)
+						const opsPerSecond = 1000 / totalMSDuration
+
+						appendTable([
+							`\t ↪ ${eventType}`,
+							`${prettyNumber(Math.floor(opsPerSecond))} ops/s`,
+							`${time} ${unit}/op`,
+						])
+					}
+				} else {
+					appendTable([
+						chalk.gray(
+							`\tObserved ${numPerfEventTypes} events with ${prettyNumber(
+								numPerfEvents,
+							)} occurrences.`,
+						),
+					])
+				}
+			}
 		} catch (error) {
 			allBenchmarksSucceeded = false
 			console.error(

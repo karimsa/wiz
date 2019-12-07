@@ -87,6 +87,7 @@ export async function benchCommand(argv) {
 		minIterations: argv.minIterations,
 		maxIterations: argv.maxIterations,
 		forceExit: argv.forceExit,
+		perfHooks: argv.perfHooks,
 	})
 
 	try {
@@ -222,5 +223,12 @@ export const benchFlags = {
 		default: false,
 		describe:
 			'Force an exit when all benchmarks are finished running (ignores open handles)',
+	},
+
+	perfHooks: {
+		type: 'boolean',
+		default: false,
+		describe:
+			'When enabled, observes performance hooks to display event-specific results.',
 	},
 }
