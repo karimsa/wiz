@@ -16,7 +16,7 @@ import { CurrentNodeEnv, mainDirectory, isCI } from '../config'
 import { readFile, writeFile, readdir } from '../fs'
 import { findSourceFiles } from '../glob'
 import { ttywrite } from '../utils'
-import { acquireLock } from '../lock'
+import { unsafeAcquireLock } from '../lock'
 
 const debug = createDebug('wiz')
 const cacheLocation = path.join(mainDirectory, 'lintcache.json')
@@ -147,6 +147,7 @@ async function lintAllFiles(argv) {
 		useEslintrc: false,
 	})
 	const goals = []
+	let unlock
 
 	performance.mark('startFileSearch')
 	try {
@@ -157,6 +158,7 @@ async function lintAllFiles(argv) {
 					directory: `./packages/${pkg}`,
 					cache: cache.readdir,
 				})) {
+					unlock = unlock || (await unsafeAcquireLock('lint'))
 					goals.push(
 						lintFile({
 							cache: cache.eslint,
@@ -174,6 +176,7 @@ async function lintAllFiles(argv) {
 				directory: './src',
 				cache: cache.readdir,
 			})) {
+				unlock = unlock || (await unsafeAcquireLock('lint'))
 				goals.push(
 					lintFile({
 						cache: cache.eslint,
@@ -190,48 +193,52 @@ async function lintAllFiles(argv) {
 	performance.mark('endFileSearch')
 	performance.measure('file search', 'startFileSearch', 'endFileSearch')
 
-	const reports = await Promise.all(goals)
-	ttywrite(`\r${ansi.eraseEndLine}`)
-	await updateCache(cache)
-	return reports
+	try {
+		const reports = await Promise.all(goals)
+		ttywrite(`\r${ansi.eraseEndLine}`)
+		await updateCache(cache)
+		return reports
+	} finally {
+		if (unlock) {
+			await unlock()
+		}
+	}
 }
 
-export function lintCommand(argv) {
-	return acquireLock('lint', async () => {
-		const allResults = await lintAllFiles(argv)
-		const report = allResults.reduce(
-			(report, fileResults) => {
-				fileResults.results.forEach(result => {
-					report.results.push(result)
-				})
+export async function lintCommand(argv) {
+	const allResults = await lintAllFiles(argv)
+	const report = allResults.reduce(
+		(report, fileResults) => {
+			fileResults.results.forEach(result => {
+				report.results.push(result)
+			})
 
-				return {
-					results: report.results,
-					errorCount: report.errorCount + fileResults.errorCount,
-					warningCount: report.warningCount + fileResults.warningCount,
-					fixableErrorCount:
-						report.fixableErrorCount + fileResults.fixableErrorCount,
-					fixableWarningCount:
-						report.fixableWarningCount + fileResults.fixableWarningCount,
-				}
-			},
-			{
-				results: [],
-				errorCount: 0,
-				warningCount: 0,
-				fixableErrorCount: 0,
-				fixableWarningCount: 0,
-			},
-		)
+			return {
+				results: report.results,
+				errorCount: report.errorCount + fileResults.errorCount,
+				warningCount: report.warningCount + fileResults.warningCount,
+				fixableErrorCount:
+					report.fixableErrorCount + fileResults.fixableErrorCount,
+				fixableWarningCount:
+					report.fixableWarningCount + fileResults.fixableWarningCount,
+			}
+		},
+		{
+			results: [],
+			errorCount: 0,
+			warningCount: 0,
+			fixableErrorCount: 0,
+			fixableWarningCount: 0,
+		},
+	)
 
-		if (report.errorCount > 0) {
-			performance.mark('startLintReport')
-			const strReport = stylish(report.results)
-			performance.mark('endLintReport')
-			performance.measure('lint report', 'startLintReport', 'endLintReport')
+	if (report.errorCount > 0) {
+		performance.mark('startLintReport')
+		const strReport = stylish(report.results)
+		performance.mark('endLintReport')
+		performance.measure('lint report', 'startLintReport', 'endLintReport')
 
-			console.log(strReport)
-			return true
-		}
-	})
+		console.log(strReport)
+		return true
+	}
 }

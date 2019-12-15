@@ -14,13 +14,20 @@ async function getLockFile(type, lockFile) {
 	}
 }
 
-export async function acquireLock(type, fn) {
+export async function unsafeAcquireLock(type) {
 	const lockFile = path.resolve(mainDirectory, `.wiz-${type}-lock`)
 	const fd = await getLockFile(type, lockFile)
+	return async () => {
+		await close(fd)
+		await unlink(lockFile)
+	}
+}
+
+export async function acquireLock(type, fn) {
+	const unlock = await unsafeAcquireLock(type)
 	try {
 		return await fn()
 	} finally {
-		await close(fd)
-		await unlink(lockFile)
+		await unlock()
 	}
 }
