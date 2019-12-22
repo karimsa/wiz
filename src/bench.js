@@ -155,14 +155,7 @@ function loadBenchConfig() {
 }
 
 export async function runAllBenchmarks() {
-	const {
-		benchTime,
-		minIterations,
-		maxIterations,
-		growthFn,
-		forceExit,
-		perfHooks,
-	} = loadBenchConfig()
+	const globalConfig = loadBenchConfig()
 	let allBenchmarksSucceeded = true
 	benchmarkRunningHasBegun = true
 
@@ -175,13 +168,22 @@ export async function runAllBenchmarks() {
 	for (let i = 0; i < entries.length; ++i) {
 		const [title, handlers] = entries[i]
 
+		let options = { ...globalConfig }
+		if (typeof handlers[handlers.length - 1] === 'object') {
+			Object.assign(options, handlers.pop())
+			if (typeof options.growthFn === 'string') {
+				options.growthFn =
+					options.growthFn === 'fibonacci' ? fibonacci : magnitude
+			}
+		}
+
 		try {
 			let startTime
 			let endTime
 			let avgDurationPerOp = 0
 			let avgOpsPerSecond = 0
 			let numTotalRuns = 0
-			let numIterations = minIterations
+			let numIterations = options.minIterations
 			let runNumber = 1
 			let numIterationsWasChecked
 			let timerIsRunning = true
@@ -283,19 +285,22 @@ export async function runAllBenchmarks() {
 				}
 				numTotalRuns++
 
-				if (duration >= benchTime || numIterations >= maxIterations) {
+				if (
+					duration >= options.benchTime ||
+					numIterations >= options.maxIterations
+				) {
 					debug(
 						`${title} benchmark concluded (duration: ${duration}; iterations: ${numIterations}; config: %O)`,
 						{
-							benchTime,
-							maxIterations,
-							growthFn,
+							benchTime: options.benchTime,
+							maxIterations: options.maxIterations,
+							growthFn: options.growthFn,
 						},
 					)
 					break
 				}
 
-				numIterations = growthFn(++runNumber)
+				numIterations = options.growthFn(++runNumber)
 			}
 
 			perfObserver.disconnect()
@@ -313,7 +318,7 @@ export async function runAllBenchmarks() {
 				`${time} ${unit}/op`,
 			])
 			if (numPerfEventTypes > 0) {
-				if (perfHooks) {
+				if (options.perfHooks) {
 					for (const [eventType, durations] of perfEvents) {
 						const totalMSDuration = durations.reduce((a, b) => a + b, 0)
 						const { time, unit } = ms(
@@ -355,7 +360,7 @@ export async function runAllBenchmarks() {
 
 	if (!allBenchmarksSucceeded) {
 		process.exit(1)
-	} else if (forceExit) {
+	} else if (globalConfig.forceExit) {
 		console.warn(`warn: forcing exit`)
 		process.exit()
 	}
