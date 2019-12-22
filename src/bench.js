@@ -169,8 +169,11 @@ export async function runAllBenchmarks() {
 		const [title, handlers] = entries[i]
 
 		let options = { ...globalConfig }
-		if (typeof handlers[handlers.length - 1] === 'object') {
-			Object.assign(options, handlers.pop())
+		const benchmarkHasOverrides =
+			typeof handlers[handlers.length - 1] === 'object'
+
+		if (benchmarkHasOverrides) {
+			Object.assign(options, handlers[handlers.length - 1])
 			if (typeof options.growthFn === 'string') {
 				options.growthFn =
 					options.growthFn === 'fibonacci' ? fibonacci : magnitude
@@ -229,11 +232,17 @@ export async function runAllBenchmarks() {
 				},
 			}
 
-			const fn = handlers[handlers.length - 1]
+			const fn = benchmarkHasOverrides
+				? handlers[handlers.length - 2]
+				: handlers[handlers.length - 1]
 			let args = [b]
 
 			process.stdout.write(`\r${ansi.eraseEndLine}preparing: ${title}`)
-			for (let i = 0; i < handlers.length - 1; i++) {
+			let lastElement = handlers.length - 1
+			if (benchmarkHasOverrides) {
+				lastElement--
+			}
+			for (let i = 0; i < lastElement; i++) {
 				args = await handlers[i](args)
 			}
 
