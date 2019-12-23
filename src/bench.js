@@ -191,7 +191,6 @@ export async function runAllBenchmarks() {
 			let endTime
 			let avgDurationPerOp = 0
 			let avgOpsPerSecond = 0
-			let numTotalRuns = 0
 			let numIterations = options.minIterations
 			let runNumber = 1
 			let numIterationsWasChecked
@@ -290,11 +289,10 @@ export async function runAllBenchmarks() {
 				process.stderr.write('\r')
 				debug(`${title} completed with N = ${numIterations} in ${duration}`)
 
-				avgDurationPerOp += duration / numIterations
+				avgDurationPerOp = duration / numIterations
 				if (duration > 0) {
-					avgOpsPerSecond += (1000 * 1000) / (duration / numIterations)
+					avgOpsPerSecond = (1000 * 1000) / (duration / numIterations)
 				}
-				numTotalRuns++
 
 				if (
 					duration >= options.benchTime ||
@@ -316,7 +314,7 @@ export async function runAllBenchmarks() {
 
 			perfObserver.disconnect()
 
-			const { time, unit } = ms(avgDurationPerOp / numTotalRuns)
+			const { time, unit } = ms(avgDurationPerOp)
 			appendTable([
 				'\t' +
 					title +
@@ -325,7 +323,7 @@ export async function runAllBenchmarks() {
 						: handlers[kHasRunSerially]
 						? ' (concurrent)'
 						: ''),
-				prettyNumber(Math.floor(avgOpsPerSecond / numTotalRuns)) + ' ops/s',
+				prettyNumber(avgOpsPerSecond) + ' ops/s',
 				`${time} ${unit}/op`,
 			])
 			if (numPerfEventTypes > 0) {
