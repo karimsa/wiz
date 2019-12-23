@@ -7,6 +7,8 @@ import createDebug from 'debug'
 import * as ansi from 'ansi-escapes'
 import * as microtime from 'microtime'
 
+import { ttywrite } from './utils'
+
 const TableUtils = require('cli-table/lib/utils')
 TableUtils.truncate = str => str
 const Table = require('cli-table')
@@ -45,17 +47,21 @@ const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
 
 function appendTable(row) {
 	if (!process.stdout.isTTY) {
-		return console.log(row.join('\t'))
+		return console.log(
+			`${row[0]}${' '.repeat(
+				longestBenchmarkTitleLength + 14 - row[0].length,
+			)}${row[1]}\t${row.slice(2).join('\t')}`,
+		)
 	}
 
 	cliTable.push(row)
 
-	process.stdout.write('\r' + ansi.eraseEndLine)
+	ttywrite('')
 	if (cliTable.length > 1) {
-		process.stdout.write(ansi.cursorUp(cliTable.length - 1))
+		ttywrite(ansi.cursorUp(cliTable.length - 1))
 	}
 
-	process.stdout.write(cliTable.toString() + '\n')
+	ttywrite(cliTable.toString() + '\n')
 	cliTable.options.colWidths = []
 }
 
@@ -237,7 +243,7 @@ export async function runAllBenchmarks() {
 				: handlers[handlers.length - 1]
 			let args = [b]
 
-			process.stdout.write(`\r${ansi.eraseEndLine}preparing: ${title}`)
+			ttywrite(`preparing: ${title}`)
 			let lastElement = handlers.length - 1
 			if (benchmarkHasOverrides) {
 				lastElement--
@@ -267,11 +273,7 @@ export async function runAllBenchmarks() {
 
 			while (true) {
 				numIterationsWasChecked = false
-				process.stdout.write(
-					`\r${ansi.eraseEndLine}running: ${title} (N = ${prettyNumber(
-						numIterations,
-					)})`,
-				)
+				ttywrite(`running: ${title} (N = ${prettyNumber(numIterations)})`)
 				b.resetTimer()
 				await fn.apply(global, args)
 				if (timerIsRunning) {
