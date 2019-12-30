@@ -327,18 +327,23 @@ export async function runAllBenchmarks() {
 						: handlers[kHasRunSerially]
 						? ' (concurrent)'
 						: ''),
-				prettyNumber(avgOpsPerSecond) + ' ops/s',
+				prettyNumber(Math.floor(avgOpsPerSecond)) + ' ops/s',
 				`${time} ${unit}/op`,
 			])
 			if (numPerfEventTypes > 0) {
 				if (options.perfHooks) {
-					for (const [eventType, durations] of perfEvents) {
-						const totalMSDuration = durations.reduce((a, b) => a + b, 0)
-						const { time, unit } = ms(
-							(1e3 * totalMSDuration) / durations.length,
-						)
-						const opsPerSecond = 1000 / totalMSDuration
+					const entries = Array.from(perfEvents.entries())
+						.map(([eventType, durations]) => {
+							const totalMSDuration = durations.reduce((a, b) => a + b, 0)
+							const duration = ms((1e3 * totalMSDuration) / durations.length)
+							const opsPerSecond = durations.length / (totalMSDuration / 1e3)
+							return [eventType, opsPerSecond, duration]
+						})
+						.sort((a, b) => {
+							return b[1] - a[1]
+						})
 
+					for (const [eventType, opsPerSecond, { time, unit }] of entries) {
 						appendTable([
 							`\t ↪ ${eventType}`,
 							`${prettyNumber(Math.floor(opsPerSecond))} ops/s`,
