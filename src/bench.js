@@ -8,6 +8,7 @@ import * as ansi from 'ansi-escapes'
 import * as microtime from 'microtime'
 
 import { ttywrite } from './utils'
+import { isCI } from './config'
 
 const TableUtils = require('cli-table/lib/utils')
 TableUtils.truncate = str => str
@@ -46,10 +47,13 @@ const cliTable = new Table({
 const benchConfig = JSON.parse(process.env.WIZ_BENCH || '{}')
 
 function appendTable(row) {
-	if (!process.stdout.isTTY) {
+	if (!process.stdout.isTTY || isCI) {
+		if (row.length === 1) {
+			return console.log(row[0])
+		}
 		return console.log(
 			`${row[0]}${' '.repeat(
-				longestBenchmarkTitleLength + 14 - row[0].length,
+				Math.max(1, longestBenchmarkTitleLength + 13 - row[0].length),
 			)}${row[1]}\t${row.slice(2).join('\t')}`,
 		)
 	}
