@@ -29,6 +29,7 @@ import { profileCommand } from './commands/profile'
 import { profileFlags } from './profiler'
 import { benchCommand, benchFlags } from './commands/bench'
 import { docCommand, docFlags } from './commands/doc'
+import { getCommand } from './commands/get'
 
 const debug = createDebug('wiz')
 const { argv } = yargs
@@ -40,6 +41,7 @@ const { argv } = yargs
 		describe: 'Enables debug mode for wiz',
 	})
 	.command('lint', 'Check all your source files for code quality', lintFlags)
+	.command('get', 'Fetch all depedencies imported by your sources')
 	.command('build', 'Builds the current project into a target', buildFlags)
 	.command('test', 'Run tests for the current project', testFlags)
 	.command('bench', 'Run benchmarks for the current project', benchFlags)
@@ -65,10 +67,17 @@ async function main() {
 		case 'lint':
 			return lintCommand(argv)
 
+		case 'get':
+			if (await lintCommand(argv)) {
+				return true
+			}
+			return getCommand(argv)
+
 		case 'build':
 			if (await lintCommand(argv)) {
 				return true
 			}
+			await getCommand(argv)
 			return buildCommand(argv)
 
 		case 'test':
