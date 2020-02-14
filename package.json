@@ -3,13 +3,19 @@
 	"version": "0.12.0",
 	"description": "Zero config toolchain to manage JS projects with simplicity.",
 	"scripts": {
-		"build": "./scripts/build.sh"
+		"build": "./scripts/build.sh",
+		"pretest": "npm run build",
+		"test": "node dist/cli test -- --forceExit --runInBand"
 	},
 	"engines": {
 		"node": "8.x.x"
 	},
 	"bin": {
 		"wiz": "wiz.js"
+	},
+	"jest": {
+		"coverageDirectory": "../coverage",
+		"rootDir": "src"
 	},
 	"dependencies": {
 		"@babel/code-frame": "^7.5.5",
@@ -55,7 +61,8 @@
 		"yargs": "^13.3.0"
 	},
 	"devDependencies": {
-		"@babel/cli": "^7.5.0"
+		"@babel/cli": "^7.5.0",
+		"del": "^5.1.0"
 	},
 	"publishConfig": {
 		"access": "public"

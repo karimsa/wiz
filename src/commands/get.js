@@ -8,7 +8,7 @@ import createDebug from 'debug'
 import { readFile, writeFile, stat } from '../fs'
 import { findSourceFiles } from '../glob'
 
-const debug = createDebug('wiz')
+const debug = createDebug('wiz:get')
 const builtinModules = new Set(Module.builtinModules)
 
 async function exists(file) {
@@ -23,14 +23,14 @@ async function exists(file) {
 	return true
 }
 
-async function findPackageManager() {
+async function findPackageManager(dev) {
 	if (await exists('./yarn.lock')) {
-		return ['yarn', ['add']]
+		return ['yarn', dev ? ['add', '--dev'] : ['add']]
 	}
 	if (await exists('./pnpm-lock.yaml')) {
-		return ['pnpm', ['add']]
+		return ['pnpm', dev ? ['add', '--dev'] : ['add']]
 	}
-	return ['npm', ['install', '--save']]
+	return ['npm', ['install', dev ? '--save-dev' : '--save']]
 }
 
 async function loadPackageJSON() {
@@ -43,7 +43,7 @@ async function loadPackageJSON() {
 			devDependencies: new Set(Object.keys(devDependencies)),
 		}
 	} catch (error) {
-		if (error.code !== 'EEXISTS') {
+		if (error.code !== 'ENOENT') {
 			throw error
 		}
 	}
@@ -55,25 +55,74 @@ async function loadPackageJSON() {
 	}
 }
 
-function markDependency({ modulePath, foundImports, dependencies }) {
+function markDependency({
+	modulePath,
+	sourceType,
+	foundImports,
+	foundDevImports,
+	dependencies,
+	devDependencies,
+}) {
+	if (modulePath[0] === '.' || modulePath[0] === '/') {
+		return
+	}
+
+	const firstSlash = modulePath.indexOf('/')
+	if (modulePath[0] === '@') {
+		const nextSlash = modulePath.indexOf('/', firstSlash + 1)
+		if (nextSlash > -1) {
+			modulePath = modulePath.substr(0, nextSlash)
+		}
+	} else if (modulePath[0] !== '.' && firstSlash > -1) {
+		modulePath = modulePath.substr(0, firstSlash)
+	}
+
 	if (!modulePath) {
 		throw new Error(`Module path is required`)
 	}
-	if (
-		!builtinModules.has(modulePath) &&
-		!dependencies.has(modulePath) &&
-		!foundImports.has(modulePath)
-	) {
-		debug(`Found missing dependency: ${modulePath}`)
-		foundImports.add(modulePath)
+
+	if (builtinModules.has(modulePath)) {
+		return
+	}
+
+	if (sourceType === 'source') {
+		if (!dependencies.has(modulePath) && !foundImports.has(modulePath)) {
+			debug(`Found missing dependency: ${modulePath} (in ${sourceType} file)`)
+			foundImports.add(modulePath)
+		}
+	} else {
+		if (!devDependencies.has(modulePath) && !foundDevImports.has(modulePath)) {
+			debug(`Found missing dependency: ${modulePath} (in ${sourceType} file)`)
+			foundDevImports.add(modulePath)
+		}
+	}
+}
+
+async function installPackages(pkgs, dev = false) {
+	const [cmd, args] = await findPackageManager(dev)
+	debug(`Installing with: ${cmd}`)
+	const { status, error } = spawnSync(cmd, [...args, ...pkgs], {
+		stdio: 'inherit',
+		shell: true,
+	})
+
+	if (error) {
+		throw error
+	}
+	if (status === null) {
+		throw new Error(`Process exited with null exit code`)
+	}
+	if (status !== 0) {
+		process.exit(status)
 	}
 }
 
 export async function getCommand() {
 	const { dependencies = [], devDependencies = [] } = await loadPackageJSON()
 	const foundImports = new Set()
+	const foundDevImports = new Set()
 
-	for await (const { file } of findSourceFiles({
+	for await (const { type, file } of findSourceFiles({
 		directory: './src',
 		cache: Object.create(null),
 	})) {
@@ -84,24 +133,27 @@ export async function getCommand() {
 
 		babelTraverse(ast, {
 			ImportDeclaration(path) {
-				const modulePath = path.node.source.value
-				const firstSlash = modulePath.indexOf('/')
-
-				if (modulePath[0] === '@') {
-					const nextSlash = modulePath.indexOf('/', firstSlash + 1)
-
+				markDependency({
+					modulePath: path.node.source.value,
+					sourceType: type,
+					foundImports,
+					foundDevImports,
+					dependencies,
+					devDependencies,
+				})
+			},
+			CallExpression(path) {
+				if (
+					path.get('callee').isIdentifier() &&
+					path.node.callee.name === 'require' &&
+					path.get('arguments').length === 1 &&
+					path.get('arguments')[0].isStringLiteral()
+				) {
 					markDependency({
-						modulePath:
-							nextSlash === -1 ? modulePath : modulePath.substr(0, nextSlash),
+						modulePath: path.node.arguments[0].value,
+						sourceType: type,
 						foundImports,
-						dependencies,
-						devDependencies,
-					})
-				} else if (modulePath[0] !== '.') {
-					markDependency({
-						modulePath:
-							firstSlash === -1 ? modulePath : modulePath.substr(0, firstSlash),
-						foundImports,
+						foundDevImports,
 						dependencies,
 						devDependencies,
 					})
@@ -110,24 +162,14 @@ export async function getCommand() {
 		})
 	}
 
-	debug(`Found ${foundImports.size} undocumented dependencies.`)
+	debug(
+		`Found ${foundImports.size} dependencies, and ${foundDevImports.size} devDependencies.`,
+	)
 
 	if (foundImports.size > 0) {
-		const [cmd, args] = await findPackageManager()
-		debug(`Installing with: ${cmd}`)
-		const { status, error } = spawnSync(cmd, [...args, ...foundImports], {
-			stdio: 'inherit',
-			shell: true,
-		})
-
-		if (error) {
-			throw error
-		}
-		if (status === null) {
-			throw new Error(`Process exited with null exit code`)
-		}
-		if (status !== 0) {
-			process.exit(status)
-		}
+		await installPackages(foundImports)
+	}
+	if (foundDevImports.size > 0) {
+		await installPackages(foundDevImports, true)
 	}
 }
