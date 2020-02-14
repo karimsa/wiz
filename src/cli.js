@@ -84,6 +84,7 @@ async function main() {
 			if (await lintCommand(argv)) {
 				return true
 			}
+			await getCommand(argv)
 			return testCommand(argv)
 
 		case 'profile':
@@ -96,6 +97,7 @@ async function main() {
 			if (await lintCommand(argv)) {
 				return true
 			}
+			await getCommand(argv)
 			return benchCommand(argv)
 
 		case 'doc':
