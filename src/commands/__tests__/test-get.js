@@ -2,7 +2,7 @@ import del from 'del'
 
 import { getCommand } from '../get'
 import { describe, it, expect, fixture } from '../../__tests__/testing'
-import { readFile, stat } from '../../fs'
+import { readFile, stat, writeFile } from '../../fs'
 
 describe('wiz get', () => {
 	it('should distinguish between deps and devDeps', async () => {
@@ -26,7 +26,14 @@ describe('wiz get', () => {
 		process.chdir(fixture('yarn-deps'))
 
 		try {
-			await del(['./node_modules', './package.json', './package-lock.json'])
+			await writeFile('./yarn.lock', '')
+			await del([
+				'./node_modules',
+				'./package.json',
+				'./package-lock.json',
+				'.yarn',
+				'.pnp.js',
+			])
 			await getCommand()
 
 			const pkgJSON = JSON.parse(await readFile('./package.json', 'utf8'))
