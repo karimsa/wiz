@@ -1,0 +1,29 @@
+name: Build and Publish
+
+on: [push]
+
+env:
+  CI: true
+  NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [8.x, 10.x, 12.x]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm ci
+    - run: npm test
+    - name: npm publish
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        echo "/registry.npmjs.org/:_authToken=$NPM_AUTH_TOKEN" >> ~/.npmrc
+        npm publish
