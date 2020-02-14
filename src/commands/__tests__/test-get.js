@@ -21,6 +21,22 @@ describe('wiz get', () => {
 		}
 	}, 7e3)
 
+	it('should recognize deps that are both normal and dev', async () => {
+		const oldCwd = process.cwd()
+		process.chdir(fixture('dup-deps'))
+
+		try {
+			await del(['./node_modules', './package.json', './package-lock.json'])
+			await getCommand()
+
+			const pkgJSON = JSON.parse(await readFile('./package.json', 'utf8'))
+			expect(Object.keys(pkgJSON.dependencies)).toEqual(['lodash'])
+			expect(pkgJSON.devDependencies).toBeUndefined()
+		} finally {
+			process.chdir(oldCwd)
+		}
+	}, 7e3)
+
 	it('should support using yarn', async () => {
 		const oldCwd = process.cwd()
 		process.chdir(fixture('yarn-deps'))

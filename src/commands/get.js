@@ -166,6 +166,12 @@ export async function getCommand() {
 		`Found ${foundImports.size} dependencies, and ${foundDevImports.size} devDependencies.`,
 	)
 
+	for (const mod of foundDevImports) {
+		if (foundImports.has(mod)) {
+			foundDevImports.delete(mod)
+		}
+	}
+
 	if (foundImports.size > 0) {
 		await installPackages(foundImports)
 	}
