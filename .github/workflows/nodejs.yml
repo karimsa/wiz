@@ -1,4 +1,4 @@
-name: Build and Publish
+name: CI
 
 on: [push]
 
@@ -10,17 +10,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [8.x, 10.x, 12.x]
-
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+    - uses: actions/setup-node@v1.1.0
       with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm ci
+        version: 10.x
+    - uses: actions/cache@v1
+      with:
+        path: ~/.cache
+        key: ${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+    - run: npm install
     - run: npm test
     - name: npm publish
       if: startsWith(github.ref, 'refs/tags/v')
