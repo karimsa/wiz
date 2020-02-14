@@ -1,6 +1,13 @@
+*.js
 !*.dist.js
 .circleci
 .wiz
 src
 tests
 fixtures
+coverage
+scripts
+.github
+docs
+.gitattributes
+.babelrc
