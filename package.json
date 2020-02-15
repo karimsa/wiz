@@ -1,6 +1,6 @@
 {
 	"name": "@karimsa/wiz",
-	"version": "0.12.5",
+	"version": "0.12.6",
 	"description": "Zero config toolchain to manage JS projects with simplicity.",
 	"scripts": {
 		"build": "./scripts/build.sh",
