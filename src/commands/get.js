@@ -61,8 +61,6 @@ function markDependency({
 	sourceFile,
 	foundImports,
 	foundDevImports,
-	dependencies,
-	devDependencies,
 }) {
 	if (modulePath[0] === '.' || modulePath[0] === '/') {
 		return
@@ -87,16 +85,16 @@ function markDependency({
 	}
 
 	if (sourceType === 'source') {
-		if (!dependencies.has(modulePath) && !foundImports.has(modulePath)) {
+		if (!foundImports.has(modulePath)) {
 			debug(
-				`Found missing dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
+				`Found dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
 			)
 			foundImports.add(modulePath)
 		}
 	} else {
-		if (!devDependencies.has(modulePath) && !foundDevImports.has(modulePath)) {
+		if (!foundDevImports.has(modulePath)) {
 			debug(
-				`Found missing dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
+				`Found dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
 			)
 			foundDevImports.add(modulePath)
 		}
@@ -148,8 +146,6 @@ export async function getCommand() {
 					sourceFile: file,
 					foundImports,
 					foundDevImports,
-					dependencies,
-					devDependencies,
 				})
 			},
 			CallExpression(path) {
@@ -165,8 +161,6 @@ export async function getCommand() {
 						sourceFile: file,
 						foundImports,
 						foundDevImports,
-						dependencies,
-						devDependencies,
 					})
 				}
 			},
@@ -177,11 +171,24 @@ export async function getCommand() {
 		`Found ${foundImports.size} dependencies, and ${foundDevImports.size} devDependencies.`,
 	)
 
+	// Deps that are mentioned in both dev and normal are
+	// just production deps
 	for (const mod of foundDevImports) {
 		if (foundImports.has(mod)) {
 			foundDevImports.delete(mod)
 		}
 	}
+
+	// Figuring out what is actually missing
+	for (const mod of dependencies) {
+		foundImports.delete(mod)
+	}
+	for (const mod of devDependencies) {
+		foundDevImports.delete(mod)
+	}
+
+	debug(`${foundImports.size} dependencies are missing`)
+	debug(`${foundDevImports.size} devDependencies are missing`)
 
 	if (foundImports.size > 0) {
 		await installPackages(foundImports)
