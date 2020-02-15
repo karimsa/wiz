@@ -1,5 +1,8 @@
 *.js
 !*.dist.js
+!disable-chokidar.js
+!bench.js
+!wiz.js
 .circleci
 .wiz
 src
