@@ -28,9 +28,9 @@ async function findPackageManager(dev) {
 		return ['yarn', dev ? ['add', '--dev'] : ['add']]
 	}
 	if (await exists('./pnpm-lock.yaml')) {
-		return ['pnpm', dev ? ['add', '--dev'] : ['add']]
+		return ['pnpm', ['add', dev ? '--save-dev' : '--save-prod']]
 	}
-	return ['npm', ['install', dev ? '--save-dev' : '--save']]
+	return ['npm', ['install', dev ? '--save-dev' : '--save-prod']]
 }
 
 async function loadPackageJSON() {
@@ -58,6 +58,7 @@ async function loadPackageJSON() {
 function markDependency({
 	modulePath,
 	sourceType,
+	sourceFile,
 	foundImports,
 	foundDevImports,
 	dependencies,
@@ -87,12 +88,16 @@ function markDependency({
 
 	if (sourceType === 'source') {
 		if (!dependencies.has(modulePath) && !foundImports.has(modulePath)) {
-			debug(`Found missing dependency: ${modulePath} (in ${sourceType} file)`)
+			debug(
+				`Found missing dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
+			)
 			foundImports.add(modulePath)
 		}
 	} else {
 		if (!devDependencies.has(modulePath) && !foundDevImports.has(modulePath)) {
-			debug(`Found missing dependency: ${modulePath} (in ${sourceType} file)`)
+			debug(
+				`Found missing dependency: ${modulePath} (in ${sourceType} file - ${sourceFile})`,
+			)
 			foundDevImports.add(modulePath)
 		}
 	}
@@ -100,8 +105,12 @@ function markDependency({
 
 async function installPackages(pkgs, dev = false) {
 	const [cmd, args] = await findPackageManager(dev)
-	debug(`Installing with: ${cmd}`)
-	const { status, error } = spawnSync(cmd, [...args, ...pkgs], {
+	pkgs.forEach(pkg => {
+		args.push(pkg)
+	})
+
+	debug(`Installing with: %O`, { cmd, args })
+	const { status, error } = spawnSync(cmd, args, {
 		stdio: 'inherit',
 		shell: true,
 	})
@@ -136,6 +145,7 @@ export async function getCommand() {
 				markDependency({
 					modulePath: path.node.source.value,
 					sourceType: type,
+					sourceFile: file,
 					foundImports,
 					foundDevImports,
 					dependencies,
@@ -152,6 +162,7 @@ export async function getCommand() {
 					markDependency({
 						modulePath: path.node.arguments[0].value,
 						sourceType: type,
+						sourceFile: file,
 						foundImports,
 						foundDevImports,
 						dependencies,
