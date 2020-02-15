@@ -10,18 +10,22 @@ import rollupReplace from 'rollup-plugin-replace'
 import rollupCommonJS from 'rollup-plugin-commonjs'
 import terser from 'terser'
 import * as ansi from 'ansi-escapes'
+import createDebug from 'debug'
 
 import { chmod } from '../fs'
 import * as perf from '../perf'
 import { ttywrite } from '../utils'
+import { Semaphore } from '../semaphore'
 
 const nodeVersion = '8'
+const debug = createDebug('wiz:build')
 
 function createChildProcess(entrypoint) {
 	return new Promise(resolve => {
 		const child = spawn(process.execPath, [entrypoint], {
 			stdio: ['ignore', 'pipe', 'inherit'],
 		})
+		debug(`Started child process with pid: ${child.pid}`)
 		child.isRunning = true
 
 		let processStarted = false
@@ -34,6 +38,8 @@ function createChildProcess(entrypoint) {
 		})
 
 		child.on('exit', code => {
+			debug(`Process ${child.pid} exited`)
+
 			child.isRunning = false
 			if (code !== 0) {
 				console.error(`[wiz] Process exited with code: ${code}`)
@@ -44,14 +50,22 @@ function createChildProcess(entrypoint) {
 
 async function runInWatchMode(entrypoint) {
 	let child = await createChildProcess(entrypoint)
+	const childLock = new Semaphore(1)
 
 	return {
 		async restart() {
 			await this.kill()
-			child = await createChildProcess(entrypoint)
+
+			const token = await childLock.lock()
+			try {
+				child = await createChildProcess(entrypoint)
+			} finally {
+				await childLock.unlock(token)
+			}
 		},
 
-		kill() {
+		async kill() {
+			const token = await childLock.lock()
 			return new Promise(resolve => {
 				if (!child.isRunning) {
 					return resolve()
@@ -59,6 +73,8 @@ async function runInWatchMode(entrypoint) {
 
 				child.on('exit', () => resolve())
 				child.kill('SIGKILL')
+			}).then(() => {
+				childLock.unlock(token)
 			})
 		},
 	}
@@ -102,6 +118,7 @@ async function startBuild({
 			let bundleStartTime = Date.now()
 
 			bundle.on('event', async event => {
+				debug(`Bundle emitted: ${event.code}`)
 				switch (event.code) {
 					case 'BUNDLE_START':
 						bundleStartTime = Date.now()
