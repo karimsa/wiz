@@ -125,6 +125,6 @@ main()
 		}
 	})
 	.catch(err => {
-		ttywrite(process.stderr, String(err.stack || err))
+		console.error(String(err.stack || err))
 		process.exit(1)
 	})
