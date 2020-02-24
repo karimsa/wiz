@@ -12,7 +12,7 @@ import terser from 'terser'
 import * as ansi from 'ansi-escapes'
 import createDebug from 'debug'
 
-import { chmod } from '../fs'
+import { chmod, exists } from '../fs'
 import * as perf from '../perf'
 import { ttywrite } from '../utils'
 import { Semaphore } from '../semaphore'
@@ -207,6 +207,10 @@ export async function buildCommand(argv) {
 	const goals = []
 
 	for (let i = 1; i < argv._.length; ++i) {
+		if (!(await exists(argv._[i]))) {
+			throw new Error(`Source file ${argv._[i]} doesn't exist.`)
+		}
+
 		goals.push(
 			startBuild({
 				input: argv._[i],

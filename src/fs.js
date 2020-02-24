@@ -37,3 +37,16 @@ export const chmod = promisify(fs, 'chmod')
 export const open = promisify(fs, 'open')
 export const close = promisify(fs, 'close')
 export const unlink = promisify(fs, 'unlink')
+
+export async function exists(file) {
+	try {
+		await stat(file)
+		return true
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			return false
+		}
+		throw error
+	}
+}
+
