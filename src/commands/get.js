@@ -7,6 +7,7 @@ import createDebug from 'debug'
 
 import { readFile, writeFile, stat } from '../fs'
 import { findSourceFiles } from '../glob'
+import { isCI } from '../config'
 
 const debug = createDebug('wiz:get')
 const builtinModules = new Set(Module.builtinModules)
@@ -38,6 +39,8 @@ async function loadPackageJSON() {
 		const { dependencies = {}, devDependencies = {} } = JSON.parse(
 			await readFile('./package.json', 'utf8'),
 		)
+
+		debug(`found existing package.json`)
 		return {
 			dependencies: new Set(Object.keys(dependencies)),
 			devDependencies: new Set(Object.keys(devDependencies)),
@@ -48,6 +51,7 @@ async function loadPackageJSON() {
 		}
 	}
 
+	debug(`package.json is missing, creating empty one`)
 	await writeFile('./package.json', '{}')
 	return {
 		dependencies: new Set(),
@@ -125,6 +129,11 @@ async function installPackages(pkgs, dev = false) {
 }
 
 export async function getCommand() {
+	debug(`Checking CI status: %O`, isCI)
+	if (isCI) {
+		throw new Error(`Cannot use 'wiz get' in CI environments`)
+	}
+
 	const { dependencies = [], devDependencies = [] } = await loadPackageJSON()
 	const foundImports = new Set()
 	const foundDevImports = new Set()

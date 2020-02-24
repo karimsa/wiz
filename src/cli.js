@@ -21,7 +21,6 @@ import yargs from 'yargs'
 import * as pkg from '../package.json'
 import * as performance from './perf'
 import { setup } from './setup'
-import { ttywrite } from './utils'
 import { lintCommand, lintFlags } from './commands/lint'
 import { buildCommand, buildFlags } from './commands/build'
 import { testCommand, testFlags } from './commands/test'
@@ -30,6 +29,7 @@ import { profileFlags } from './profiler'
 import { benchCommand, benchFlags } from './commands/bench'
 import { docCommand, docFlags } from './commands/doc'
 import { getCommand } from './commands/get'
+import { isCI } from './config'
 
 const debug = createDebug('wiz')
 const { argv } = yargs
@@ -52,6 +52,12 @@ updateNotifier({ pkg }).notify()
 
 if (argv.debug) {
 	performance.enableHooks()
+}
+
+function wizGetNonCI(argv) {
+	if (!isCI) {
+		return getCommand(argv)
+	}
 }
 
 async function main() {
@@ -77,14 +83,14 @@ async function main() {
 			if (await lintCommand(argv)) {
 				return true
 			}
-			await getCommand(argv)
+			await wizGetNonCI(argv)
 			return buildCommand(argv)
 
 		case 'test':
 			if (await lintCommand(argv)) {
 				return true
 			}
-			await getCommand(argv)
+			await wizGetNonCI(argv)
 			return testCommand(argv)
 
 		case 'profile':
@@ -97,7 +103,7 @@ async function main() {
 			if (await lintCommand(argv)) {
 				return true
 			}
-			await getCommand(argv)
+			await wizGetNonCI(argv)
 			return benchCommand(argv)
 
 		case 'doc':
