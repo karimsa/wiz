@@ -128,9 +128,9 @@ async function installPackages(pkgs, dev = false) {
 	}
 }
 
-export async function getCommand() {
+export async function getCommand(argv = {}) {
 	debug(`Checking CI status: %O`, isCI)
-	if (isCI) {
+	if (isCI && !argv.force) {
 		throw new Error(`Cannot use 'wiz get' in CI environments`)
 	}
 

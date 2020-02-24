@@ -5,13 +5,17 @@ import { describe, it, expect, fixture } from '../../__tests__/testing'
 import { readFile, stat, writeFile } from '../../fs'
 
 describe('wiz get', () => {
+	it('should fail on CIs', async () => {
+		await expect(getCommand()).rejects.toThrow(/CI/)
+	})
+
 	it('should distinguish between deps and devDeps', async () => {
 		const oldCwd = process.cwd()
 		process.chdir(fixture('get-deps'))
 
 		try {
 			await del(['./node_modules', './package.json', './package-lock.json'])
-			await getCommand()
+			await getCommand({ force: true })
 
 			const pkgJSON = JSON.parse(await readFile('./package.json', 'utf8'))
 			expect(Object.keys(pkgJSON.dependencies)).toEqual(['lodash'])
@@ -27,7 +31,7 @@ describe('wiz get', () => {
 
 		try {
 			await del(['./node_modules', './package.json', './package-lock.json'])
-			await getCommand()
+			await getCommand({ force:true})
 
 			const pkgJSON = JSON.parse(await readFile('./package.json', 'utf8'))
 			expect(Object.keys(pkgJSON.dependencies)).toEqual(['lodash'])
@@ -50,7 +54,7 @@ describe('wiz get', () => {
 				'.yarn',
 				'.pnp.js',
 			])
-			await getCommand()
+			await getCommand({force:true})
 
 			const pkgJSON = JSON.parse(await readFile('./package.json', 'utf8'))
 			expect(Object.keys(pkgJSON.dependencies)).toEqual(['lodash'])
