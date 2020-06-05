@@ -23,7 +23,7 @@ jobs:
       if: always()
       with:
         path: ~/.cache
-        key: ${{ runner.os }}-home-${{ hashFiles('package-lock.json') }}
+        key: ${{ runner.os }}-${{ hashFiles('packages/meriyah/package-lock.json') }}-${{ hashFiles('packages/wiz/package-lock.json') }}
     - name: "Test: meriyah"
       run: |
         set -e
