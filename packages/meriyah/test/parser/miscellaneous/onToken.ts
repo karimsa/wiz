@@ -1,12 +1,9 @@
 import * as t from 'assert';
 import { parseScript } from '../../../src/meriyah';
-import { Token } from '../../../src/token';
 
 describe('Miscellaneous - onToken', () => {
   it('tokenize braces using array', () => {
-    const tokens: Token[] = [];
-    parseScript('{}', {
-      onToken: tokens,
+    const { tokens } = parseScript('{}', {
       loc: true
     });
     t.deepEqual(tokens, [
@@ -24,16 +21,12 @@ describe('Miscellaneous - onToken', () => {
   });
 
   it('tokenize boolean using function', () => {
-    let onTokenCount = 0;
-    parseScript('// c\nfalse', {
-      onToken: function(token: string, start?: number, end?: number) {
-        t.deepEqual(token, 'BooleanLiteral');
-        t.deepEqual(start, 5);
-        t.deepEqual(end, 10);
-        onTokenCount++;
-      },
+    const { tokens } = parseScript('// c\nfalse', {
       loc: true
-    });
-    t.equal(onTokenCount, 1);
+	});
+	t.equal(tokens.length, 1);
+	t.equal(tokens[0].type, 'BooleanLiteral');
+	t.deepEqual(tokens[0].start, 5);
+	t.deepEqual(tokens[0].end, 10);
   });
 });
