@@ -1,4 +1,4 @@
-import { TokenEmitType } from 'common'
+import { TokenEmitType } from './common'
 
 export interface _Node {
 	start?: number
