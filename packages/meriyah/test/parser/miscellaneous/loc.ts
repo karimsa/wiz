@@ -1804,7 +1804,7 @@ describe('Miscellaneous - loc', () => {
     const sourceLF =
       '// Single line comment\n// Single line comment\n// Single line comment\n// Single line comment\nfunction handleAutocomplete() {\n   var prp = this.props; // some error here\n\n   for(let xa=0; xa<100; xa++) {;}\n   }';
     const sourceCRLF = sourceLF.replace(/\n/g, '\r\n');
-    t.deepEqual(
+    matchesRight.assert(
       parse(sourceLF, {
         loc: true
       }),

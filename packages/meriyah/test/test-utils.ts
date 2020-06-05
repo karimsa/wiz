@@ -2,7 +2,7 @@ import * as t from 'assert';
 import { parseSource } from '../src/parser';
 import { Context } from '../src/common';
 
-function matchesRight(left: any, right: any) {
+export const matchesRight = Object.assign(function(left: any, right: any) {
 	if (typeof left !== typeof right) {
 		return false
 	}
@@ -16,21 +16,24 @@ function matchesRight(left: any, right: any) {
 		}
 	}
 	return true
-}
+}, {
+	assert: (left: any, right: any) => t.equal(matchesRight(left, right), true),
+	assertFalse: (left: any, right: any) => t.equal(matchesRight(left, right), false),
+})
 
 describe('matchesRight', () => {
 	it('should work with extra props', () => {
-		t.equal(matchesRight({
+		matchesRight.assert({
 			a: 1,
 			b: 1,
 		}, {
 			a: 1,
-		}), true);
-		t.equal(matchesRight({
+		});
+		matchesRight.assertFalse({
 			a: 1,
 		}, {
 			a: 2,
-		}), false);
+		});
 	});
 });
 

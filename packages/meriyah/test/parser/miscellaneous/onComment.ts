@@ -1,10 +1,11 @@
 import * as t from 'assert';
 import { parseScript } from '../../../src/meriyah';
+import { matchesRight } from '../../test-utils';
 
 describe('Miscellaneous - onComment', () => {
   it('should extract single line comment', () => {
     let onCommentCount = 0;
-    t.deepEqual(
+    matchesRight.assert(
       parseScript('// Single line comment', {
         onComment: (type: any, body: any) => {
           t.deepEqual(type, 'SingleLine');
@@ -23,7 +24,7 @@ describe('Miscellaneous - onComment', () => {
 
   it('should extract single line comment with trailing new line', () => {
     let onCommentCount = 0;
-    t.deepEqual(
+    matchesRight.assert(
       parseScript('// Single line comment\n', {
         onComment: (type: any, body: any) => {
           t.deepEqual(type, 'SingleLine');
@@ -42,7 +43,7 @@ describe('Miscellaneous - onComment', () => {
 
   it('should extract multiline line comment', () => {
     let onCommentCount = 0;
-    t.deepEqual(
+    matchesRight.assert(
       parseScript('/* Multi line comment */', {
         onComment: (type: any, body: any) => {
           t.deepEqual(type, 'MultiLine');
@@ -61,7 +62,7 @@ describe('Miscellaneous - onComment', () => {
 
   it('should extract multiline line comment', () => {
     let onCommentCount = 0;
-    t.deepEqual(
+    matchesRight.assert(
       parseScript('/* Multi line comment */', {
         ranges: true,
         onComment: (type: any, body: any, start: any, end: any) => {
@@ -89,7 +90,7 @@ describe('Miscellaneous - onComment', () => {
     parseScript('/* Multi line comment */', {
       onComment: arr
     });
-    t.deepEqual(arr, [
+    matchesRight.assert(arr, [
       {
         type: 'MultiLine',
         value: ' Multi line comment '
@@ -103,7 +104,7 @@ describe('Miscellaneous - onComment', () => {
       ranges: true,
       onComment: arr
     });
-    t.deepEqual(arr, [
+    matchesRight.assert(arr, [
       {
         start: 2,
         end: 24,
@@ -120,7 +121,7 @@ describe('Miscellaneous - onComment', () => {
       ranges: true,
       onComment: arr
     });
-    t.deepEqual(arr, [
+    matchesRight.assert(arr, [
       {
         start: 2,
         end: 7,
@@ -172,7 +173,7 @@ describe('Miscellaneous - onComment', () => {
       onComment: arr,
       webcompat: true
     });
-    t.deepEqual(arr, [
+    matchesRight.assert(arr, [
       {
         type: 'HTMLOpen',
         value: 'comment #1\n'

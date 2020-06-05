@@ -1,9 +1,10 @@
 import * as t from 'assert';
 import { parseModule, parseScript, parse } from '../../../src/meriyah';
+import { matchesRight } from '../../test-utils';
 
 describe('Expressions - API', () => {
   it('should parse script code with "parse"', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parse('foo', {
         loc: true,
         globalReturn: true,
@@ -77,7 +78,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse script code', () => {
-    t.deepEqual(parseScript('foo'), {
+    matchesRight.assert(parseScript('foo'), {
       body: [
         {
           expression: {
@@ -92,7 +93,7 @@ describe('Expressions - API', () => {
     });
   });
   it('should parse module code with directive node', () => {
-    t.deepEqual(parseModule('1', { directives: true }), {
+    matchesRight.assert(parseModule('1', { directives: true }), {
       body: [
         {
           expression: {
@@ -109,7 +110,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse module code with directive node and strict directive', () => {
-    t.deepEqual(parseModule('"use strict"; 1', { directives: true }), {
+    matchesRight.assert(parseModule('"use strict"; 1', { directives: true }), {
       type: 'Program',
       sourceType: 'module',
       body: [
@@ -135,7 +136,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse module code', () => {
-    t.deepEqual(parseModule('foo'), {
+    matchesRight.assert(parseModule('foo'), {
       body: [
         {
           expression: {
@@ -151,7 +152,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse with impliedStrict and shebang option', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseScript('foo', {
         impliedStrict: true,
         next: true
@@ -173,7 +174,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse with raw option', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('foo', {
         raw: true
       }) as any,
@@ -194,7 +195,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse with raw option - string', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('"a"', {
         raw: true
       }) as any,
@@ -216,7 +217,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse with globalReturn option', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('return', {
         globalReturn: true,
         next: true
@@ -235,7 +236,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse with directive option', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('"abc"', {
         directives: true,
         next: true
@@ -259,7 +260,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse binary expr correctly', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('a ?? (x || dd && aa) / y - foo', {
         directives: true,
         next: true,
@@ -492,7 +493,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse precedence values correctly', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('x || y || z && a ** x ? b ? c : d : e', {
         jsx: true,
         next: true
@@ -568,7 +569,7 @@ describe('Expressions - API', () => {
   });
 
   it('should parse JSX', () => {
-    t.deepEqual(
+    matchesRight.assert(
       parseModule('<ul></ul>', {
         jsx: true,
         next: true
