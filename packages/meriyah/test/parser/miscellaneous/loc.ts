@@ -1,6 +1,5 @@
-import * as t from 'assert';
 import { Context } from '../../../src/common';
-import { pass } from '../../test-utils';
+import { pass, matchesRight } from '../../test-utils';
 import { parse } from '../../../src/meriyah';
 
 describe('Miscellaneous - loc', () => {

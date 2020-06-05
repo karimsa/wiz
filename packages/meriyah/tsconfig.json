@@ -23,5 +23,8 @@
     "typeRoots": ["./node_modules/@types"],
 	"types": ["node", "mocha"]
   },
-  "include": ["src"]
+  "include": [
+	  "src",
+	  "test"
+  ]
 }

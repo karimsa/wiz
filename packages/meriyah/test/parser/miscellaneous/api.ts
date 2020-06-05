@@ -1,4 +1,3 @@
-import * as t from 'assert';
 import { parseModule, parseScript, parse } from '../../../src/meriyah';
 import { matchesRight } from '../../test-utils';
 
