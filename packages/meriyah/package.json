@@ -2,7 +2,7 @@
   "name": "meriyah",
   "version": "1.9.15",
   "description": "A 100% compliant, self-hosted javascript parser with high focus on both performance and stability",
-  "main": "meriyah.dist.js",
+  "main": "dist/meriyah.js",
   "types": "dist/meriyah.d.ts",
   "typings": "dist/meriyah.d.ts",
   "author": "KFlash",

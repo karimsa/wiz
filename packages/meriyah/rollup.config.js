@@ -5,7 +5,7 @@ import typescriptPlugin from 'rollup-plugin-typescript2'
 export default {
 	input: './src/meriyah.ts',
 	output: {
-		file: './meriyah.dist.js',
+		file: './dist/meriyah.js',
 		name: 'meriyah',
 		format: 'cjs',
 	},
