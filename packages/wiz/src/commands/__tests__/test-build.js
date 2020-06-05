@@ -10,6 +10,15 @@ async function transpile(input, expected) {
 }
 
 describe('Builder', () => {
+	describe.only('proposal-numeric-separator', () => {
+		it('should remove separators', async () => {
+			await transpile('1_000', '1000;')
+			await transpile('0xAE_BE_CE', '0xaebece;')
+			await transpile('0b1010_0001_1000_0101', '0b1010000110000101;')
+			await transpile('0o0_6_6_6', '0o0666;')
+		})
+	})
+
 	describe('ES2015', () => {
 		it('should transpile a single named import', async () => {
 			await transpile(`

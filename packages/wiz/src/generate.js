@@ -28,7 +28,10 @@ const generators = {
 	},
 
 	Literal(node) {
-		return JSON.stringify(node.value)
+		if (typeof node.value === 'number') {
+			return node.raw.replace(/_/g, '')
+		}
+		return node.raw
 	},
 
 	VariableDeclaration(node) {
@@ -123,6 +126,10 @@ const generators = {
 
 	LogicalExpression(node, state) {
 		return `(${generate(node.left, state)} ${node.operator} ${generate(node.right, state)})`
+	},
+
+	ExpressionStatement(node, state) {
+		return `${generate(node.expression, state)};`
 	},
 }
 

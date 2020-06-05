@@ -91,27 +91,32 @@ function replaceFromListWithMultiple(node, body, replacements) {
 }
 
 const transpilers = Object.freeze({
-	Program(node) {
-		node.body.unshift(functionDeclaration({
-			id: identifier('_interopDefaultImport'),
-			params: [identifier('value')],
-			body: blockStatement([
-				returnStatement(logicalExpression({
-					left: memberExpression({
-						object: identifier('value'),
-						property: identifier('default'),
-					}),
-					operator: '||',
-					right: identifier('value'),
-				})),
-			]),
-		}))
+	Program: {
+		exit({node, state}) {
+			if (state.usesDefaultImports) {
+				node.body.unshift(functionDeclaration({
+					id: identifier('_interopDefaultImport'),
+					params: [identifier('value')],
+					body: blockStatement([
+						returnStatement(logicalExpression({
+							left: memberExpression({
+								object: identifier('value'),
+								property: identifier('default'),
+							}),
+							operator: '||',
+							right: identifier('value'),
+						})),
+					]),
+				}))
+			}
+		},
 	},
-	ImportDeclaration(node, ancestors) {
+	ImportDeclaration({node, state, ancestors}) {
 		const replacements = []
 
 		for (const specifier of node.specifiers) {
 			if (specifier.type === 'ImportDefaultSpecifier') {
+				state.usesDefaultImports = true
 				replacements.push(
 					variableDeclaration({
 						kind: 'const',
@@ -159,7 +164,7 @@ const transpilers = Object.freeze({
 
 		replaceFromListWithMultiple(node, ancestors[ancestors.length - 2].body, replacements)
 	},
-	ExportNamedDeclaration(node, ancestors) {
+	ExportNamedDeclaration({node, ancestors}) {
 		const replacements = []
 
 		if (node.declaration) {
@@ -194,6 +199,32 @@ export function transpileAst(ast) {
 	if (!ast) {
 		throw new Error(`A valid ast is required to transpile`)
 	}
-	acornWalk.ancestor(ast, transpilers, acornWalk.base)
+
+	const ancestors = []
+	const state = {
+		usesDefaultImports: false,
+	}
+	function visitNode(node) {
+		ancestors.push(node)
+
+		if (transpilers[node.type]) {
+			const enter = typeof transpilers[node.type] === 'function' ? transpilers[node.type] : transpilers[node.type].enter
+			const exit = typeof transpilers[node.type] === 'function' ? null : transpilers[node.type].exit
+
+			if (enter) {
+				enter({ node, state, ancestors })
+			}
+			acornWalk.base[node.type](node, null, visitNode)
+			if (exit) {
+				exit({ node, state, ancestors })
+			}
+		} else {
+			acornWalk.base[node.type](node, null, visitNode)
+		}
+
+		ancestors.pop()
+	}
+	visitNode(ast)
+
 	return ast
 }

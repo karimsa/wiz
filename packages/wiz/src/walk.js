@@ -24,18 +24,16 @@ async function readdir(rootDir, dir, dirStat) {
 }
 
 export function parseSource(text) {
-    const tokens = []
     const comments = []
     const ast = meriyah.parseModule(text, {
-        onToken: tokens,
         onComment: comments,
         loc: true,
         ranges: true,
 		next: true,
+		raw: true,
 	})
 	ast.loc = [ast.loc]
     return Object.assign(ast, {
-        tokens,
         comments,
     })
 }
