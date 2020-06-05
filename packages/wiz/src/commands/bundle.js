@@ -2,11 +2,14 @@ import * as path from 'path'
 import * as acornWalk from 'acorn-walk'
 
 import { lintDirectory } from './lint'
+import { transpileAst } from '../build'
 import { generate } from '../generate'
 
 export function buildFileNode({ lintResult }) {
+	const ast = transpileAst(lintResult.ast)
 	return {
-		text: generate(lintResult.ast),
+		ast,
+		text: generate(ast),
 	}
 }
 
