@@ -24,13 +24,20 @@ jobs:
       with:
         path: ~/.cache
         key: ${{ runner.os }}-home-${{ hashFiles('package-lock.json') }}
-    - name: Install dependencies
-      run: npx @karimsa/mono
-    - name: Run tests
+    - name: "Test: meriyah"
       run: |
         set -e
-        npx @karimsa/mono build
-        npx @karimsa/mono test
+        cd packages/meriyah
+        npm install
+        npm run build
+        npm test
+    - name: "Test: wiz"
+      run: |
+        set -e
+        cd packages/wiz
+        npm install
+        npm run build
+        npm test
     - name: Publish
       if: "startsWith(github.ref, 'refs/tags/v') && matrix.node == 8"
       run: |
