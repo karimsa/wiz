@@ -1,3 +1,5 @@
+import * as util from 'util'
+
 const joinWords = words => {
 	return words.reduce((text, str) => {
 		if (str) {
@@ -37,7 +39,7 @@ const generators = {
 	VariableDeclaration(node) {
 		return node.kind + ' ' + node.declarations.map(decl => {
 			return generators.VariableDeclarator(decl)
-		}).join(', ')
+		}).join(', ') + ';'
 	},
 
 	VariableDeclarator(node) {
@@ -63,22 +65,49 @@ const generators = {
 		if (node.properties.length === 0) {
 			return '{}'
 		}
-		return `{\n${node.properties.map(property => {
-			switch (property.kind) {
-				case 'init':
-					if (property.computed) {
-						return `${state.indent}\t[${generate(property.key)}]: ${generate(property.value)}`
+		indent()
+		return joinWords([
+			'{\n',
+			node.properties.map(property => {
+				switch (property.kind) {
+					case 'init':
+						return joinWords([
+							state.indent,
+							property.computed && '[',
+							generate(property.key),
+							property.computed && ']',
+							': ',
+							generate(property.value),
+						])
+	
+					case 'set':
+					case 'get': {
+						indent()
+						const body = generate(property.value.body)
+						unindent()
+
+						return joinWords([
+							state.indent,
+							property.kind,
+							' ',
+							generate(property.key),
+							'(',
+							generators.FunctionParams(property.value.params),
+							') {\n',
+							body,
+							'\n',
+							state.indent,
+							'}',
+						])
 					}
-					return `${state.indent}\t${generate(property.key)}: ${generate(property.value)}`
-
-				case 'set':
-				case 'get':
-					return `${state.indent}\t${property.kind} ${generate(property.key)} {\n${generate(property.value)}}`
-
-				default:
-					throw new Error(`Unsupported property type in ObjectExpression: ${property.kind}`)
-			}
-		}).join(',\n')},\n}`
+	
+					default:
+						throw new Error(`Unsupported property type in ObjectExpression: ${property.kind}`)
+				}
+			}).join(',\n') + ',\n',
+			unindent(),
+			'}',
+		])
 	},
 
 	AssignmentExpression(node) {
@@ -97,39 +126,141 @@ const generators = {
 	},
 
 	BlockStatement(node) {
-		let space = indent()
-		const str = node.body.map(statement => {
-			return space + generate(statement)
-		}).join('\n') + '\n'
-		unindent()
-		return str
+		return node.body.map(stmt => {
+			return generate(stmt)
+		}).join('\n')
 	},
 
 	FunctionDeclaration(node) {
+		indent()
+		const body = generate(node.body)
+		unindent()
 		return joinWords([
-			node.async && ' async',
+			state.indent,
+			node.async && 'async ',
 			'function',
 			node.generator && '*',
 			' ',
-			generate(node.id),
+			node.id && generate(node.id),
 			'(',
 			generators.FunctionParams(node.params),
 			') {\n',
-			generate(node.body),
-			'}',
+			body,
+			state.indent,
+			'}\n',
 		])
 	},
 
-	ReturnStatement(node, state) {
-		return `return ${generate(node.argument, state)};`
+	FunctionExpression(node) {
+		return generators.FunctionDeclaration(node)
 	},
 
-	LogicalExpression(node, state) {
+	ReturnStatement(node) {
+		return `${state.indent}return ${generate(node.argument, state)};`
+	},
+
+	LogicalExpression(node) {
 		return `(${generate(node.left, state)} ${node.operator} ${generate(node.right, state)})`
 	},
 
-	ExpressionStatement(node, state) {
-		return `${generate(node.expression, state)};`
+	ExpressionStatement(node) {
+		return `${state.indent}${generate(node.expression, state)};`
+	},
+
+	ClassDeclaration(node) {
+		indent()
+		const body = generate(node.body)
+		unindent()
+
+		return joinWords([
+			state.indent,
+			node.superClass ?
+				`class ${generate(node.id, state)} extends ${generate(node.superClass, state)} {` :
+				`class ${generate(node.id, state)} {`,
+			`\n`,
+			body,
+			state.indent,
+			`}`,
+		])
+	},
+
+	ClassBody(node) {
+		return node.body.map(child => {
+			return generate(child, state)
+		}).join('\n')
+	},
+
+	MethodDefinition(node) {
+		if (node.kind === 'constructor') {
+			indent()
+			const body = generate(node.value.body)
+			unindent()
+			return joinWords([
+				state.indent,
+				`constructor(`,
+				generators.FunctionParams(node.value.params),
+				`) {`,
+				'\n',
+				body,
+				'\n',
+				state.indent,
+				'}\n',
+			])
+		}
+		if (node.kind === 'get' || node.kind === 'set') {
+			indent()
+			const body = generate(node.value.body)
+			unindent()
+			return joinWords([
+				state.indent,
+				node.static && `static `,
+				`${node.kind} `,
+				node.async && `async `,
+				node.generator && `* `,
+				node.computed && `[`,
+				generate(node.key),
+				node.computed && `]`,
+				`(`,
+				generators.FunctionParams(node.value.params),
+				`) {`,
+				'\n',
+				body,
+				'\n',
+				state.indent,
+				'}\n',
+			])
+		}
+		if (node.kind === 'method') {
+			indent()
+			const body = generate(node.value.body)
+			unindent()
+			return joinWords([
+				state.indent,
+				node.static && `static `,
+				node.async && `async `,
+				node.generator && `* `,
+				node.computed && `[`,
+				generate(node.key),
+				node.computed && `]`,
+				`(`,
+				generators.FunctionParams(node.value.params),
+				`) {`,
+				'\n',
+				body,
+				'\n',
+				state.indent,
+				'}\n',
+			])
+		}
+
+		throw new Error(`Unsupported method type: ${node.kind}`)
+	},
+
+	Super() {
+		return 'super'
+	},
+	ThisExpression() {
+		return 'this'
 	},
 }
 

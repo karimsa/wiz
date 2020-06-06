@@ -337,6 +337,7 @@ export const eslintConfig = {
 			}
 		],
 		"no-implicit-coercion": "error",
+		"no-constructor-return": "error",
 
 		// Prettier config
 		"prettier/prettier": ["error", {

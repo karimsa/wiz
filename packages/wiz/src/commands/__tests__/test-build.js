@@ -10,12 +10,181 @@ async function transpile(input, expected) {
 }
 
 describe('Builder', () => {
-	describe.only('proposal-numeric-separator', () => {
+	// Added in Node v12.x
+	describe('proposal-numeric-separator', () => {
 		it('should remove separators', async () => {
 			await transpile('1_000', '1000;')
 			await transpile('0xAE_BE_CE', '0xaebece;')
 			await transpile('0b1010_0001_1000_0101', '0b1010000110000101;')
 			await transpile('0o0_6_6_6', '0o0666;')
+		})
+	})
+
+	// Not added to Node LTS
+	describe('proposal-class-properties', () => {
+		it('should transpile instance props (no constructor)', async () => {
+			await transpile(
+				[
+					`class Hello {`,
+					`	name = 'world'`,
+					`}`,
+				].join('\n'),
+				[
+					`class Hello {`,
+					`\tconstructor() {`,
+					`\t\tthis.name = 'world';`,
+					`\t}`,
+					`}`,
+				].join('\n'),
+			)
+			await transpile(
+				[
+					`class Hello extends Other {`,
+					`	name = 'world'`,
+					`}`,
+				].join('\n'),
+				[
+					`class Hello extends Other {`,
+					`\tconstructor() {`,
+					`\t\tsuper();`,
+					`\t\tthis.name = 'world';`,
+					`\t}`,
+					`}`,
+				].join('\n'),
+			)
+		})
+		it('should transpile instance props (with constructor)', async () => {
+			await transpile(
+				[
+					`class Hello {`,
+					`	name = 'world'`,
+					`	constructor() {`,
+					`		this.c = 1`,
+					`	}`,
+					`}`,
+				].join('\n'),
+				[
+					`class Hello {`,
+					`	constructor() {`,
+					`		this.name = 'world';`,
+					`		this.c = 1;`,
+					`	}`,
+					`}`,
+				].join('\n'),
+			)
+			await transpile(
+				[
+					`class Hello extends Other {`,
+					`	name = 'world'`,
+					`	constructor() {`,
+					`		super()`,
+					`		this.c = 1`,
+					`	}`,
+					`}`,
+				].join('\n'),
+				[
+					`class Hello extends Other {`,
+					`	constructor() {`,
+					`		super();`,
+					`		this.name = 'world';`,
+					`		this.c = 1;`,
+					`	}`,
+					`}`,
+				].join('\n'),
+			)
+		})
+		it('should transpile static props', async () => {
+			await transpile(
+				[
+					`class Hello {`,
+					`	static test = 1`,
+					`}`,
+				].join('\n'),
+				[
+					`const Hello = Object.defineProperties(class Hello {`,
+					`}, {`,
+					`	test: {`,
+					`		value: 1,`,
+					`		writable: false,`,
+					`	},`,
+					`});`,
+				].join('\n'),
+			)
+		})
+		it('should handle computed props', async () => {
+			await transpile(
+				[
+					`class Hello extends Other {`,
+					`	[name()] = 'world'`,
+					`}`,
+				].join('\n'),
+				[
+					`class Hello extends Other {`,
+					`	constructor() {`,
+					`		super();`,
+					`		this[name()] = 'world';`,
+					`	}`,
+					`}`,
+				].join('\n'),
+			)
+		})
+		it('should transpile nested class props', async () => {
+			await transpile(
+				[
+					`class Outer extends Hello {`,
+					`	constructor() {`,
+					`		super()`,
+					`		class Inner {`,
+					`			[super.toString()] = 'hello'`,
+					`		}`,
+					`	}`,
+					`}`,
+				].join('\n'),
+				[
+					`class Outer extends Hello {`,
+					`	constructor() {`,
+					`		super();`,
+					`		class Inner {`,
+					`			constructor() {`,
+					`				this[super.toString()] = 'hello';`,
+					`			}`,
+					`		}`,
+					`	}`,
+					`}`,
+				].join('\n'),
+			)
+		})
+		it('should transpile arrow fn props', async () => {
+			await transpile(
+				[
+					`class Foo {`,
+					`	static fn = () => console.log(this)`,
+					`}`,
+				].join('\n'),
+				[
+					`const Foo = Object.defineProperties(class Foo {`,
+					`}, {`,
+					`	fn: {`,
+					`		value: (() => console.log(this)),`,
+					`		writable: false,`,
+					`	},`,
+					`});`,
+				].join('\n'),
+			)
+			await transpile(
+				[
+					`class Foo {`,
+					`	fn = () => console.log(this)`,
+					`}`,
+				].join('\n'),
+				[
+					`class Foo {`,
+					`	constructor() {`,
+					`		this.fn = (() => console.log(this));`,
+					`	}`,
+					`}`,
+				].join('\n'),
+			)
 		})
 	})
 

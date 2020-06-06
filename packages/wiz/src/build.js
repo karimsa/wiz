@@ -20,9 +20,18 @@ const identifier = name => ({
 	type: 'Identifier',
 	name,
 })
-const literal = value => ({
+const literal = ({ value, raw }) => ({
 	type: 'Literal',
 	value,
+	raw,
+})
+const booleanLiteral = value => literal({
+	value,
+	raw: String(value),
+})
+const expressionStatement = expression => ({
+	type: 'ExpressionStatement',
+	expression,
 })
 const assignmentExpression = ({ operator, left, right }) => ({
 	type: 'AssignmentExpression',
@@ -46,7 +55,7 @@ const objectExpression = (properties = []) => ({
 	type: 'ObjectExpression',
 	properties,
 })
-const objectProperty = ({ method = false, shorthand = false, computed = false, key, kind, value }) => ({
+const objectProperty = ({ method = false, shorthand = false, computed = false, key, kind = 'init', value }) => ({
 	type: 'Property',
 	key,
 	kind,
@@ -63,6 +72,14 @@ const functionDeclaration = ({ id, params = [], body = [], async = false, genera
 	async,
 	generator,
 })
+const functionExpression = ({ id = null, params = [], body = [], async = false, generator = false }) => ({
+	type: 'FunctionExpression',
+	id,
+	params,
+	body,
+	async,
+	generator,
+})
 const blockStatement = body => ({
 	type: 'BlockStatement',
 	body,
@@ -70,6 +87,26 @@ const blockStatement = body => ({
 const returnStatement = argument => ({
 	type: 'ReturnStatement',
 	argument,
+})
+const thisExpression = () => ({
+	type: 'ThisExpression',
+})
+const superExpression = () => ({
+	type: 'Super',
+})
+const methodDefinition = ({
+	kind,
+	'static': isStatic = false,
+	computed = false,
+	key,
+	value,
+}) => ({
+	type: 'MethodDefinition',
+	kind,
+	static: isStatic,
+	computed,
+	key,
+	value,
 })
 
 function replaceFromList(node, body, replacement) {
@@ -90,28 +127,48 @@ function replaceFromListWithMultiple(node, body, replacements) {
 	}
 }
 
+function replaceNode(target, replacement) {
+	if (target.parent.type === 'ExpressionStatement') {
+		target.parent.expression = replacement
+	} else if (target.parent.body) {
+		replaceFromList(target, target.parent.body, replacement)
+	} else {
+		throw new Error(`Unsure how to replace node within ${target.type} parent`)
+	}
+}
+
+function iterateList(list, fn) {
+	const removed = new Set()
+	for (let i = 0; i < list.length; i++) {
+		fn(list[i], function() {
+			removed.add(i)
+		})
+	}
+	return list.filter((_, i) => {
+		return !removed.has(i)
+	})
+}
+
 const transpilers = Object.freeze({
-	Program: {
-		exit({node, state}) {
-			if (state.usesDefaultImports) {
-				node.body.unshift(functionDeclaration({
-					id: identifier('_interopDefaultImport'),
-					params: [identifier('value')],
-					body: blockStatement([
-						returnStatement(logicalExpression({
-							left: memberExpression({
-								object: identifier('value'),
-								property: identifier('default'),
-							}),
-							operator: '||',
-							right: identifier('value'),
-						})),
-					]),
-				}))
-			}
-		},
+	Program(node, state) {
+		if (state.usesDefaultImports) {
+			node.body.unshift(functionDeclaration({
+				id: identifier('_interopDefaultImport'),
+				params: [identifier('value')],
+				body: blockStatement([
+					returnStatement(logicalExpression({
+						left: memberExpression({
+							object: identifier('value'),
+							property: identifier('default'),
+						}),
+						operator: '||',
+						right: identifier('value'),
+					})),
+				]),
+			}))
+		}
 	},
-	ImportDeclaration({node, state, ancestors}) {
+	ImportDeclaration(node, state, ancestors) {
 		const replacements = []
 
 		for (const specifier of node.specifiers) {
@@ -164,7 +221,7 @@ const transpilers = Object.freeze({
 
 		replaceFromListWithMultiple(node, ancestors[ancestors.length - 2].body, replacements)
 	},
-	ExportNamedDeclaration({node, ancestors}) {
+	ExportNamedDeclaration(node, _, ancestors) {
 		const replacements = []
 
 		if (node.declaration) {
@@ -193,38 +250,146 @@ const transpilers = Object.freeze({
 
 		replaceFromListWithMultiple(node, ancestors[ancestors.length - 2].body, replacements)
 	},
+	ClassDeclaration(node) {
+		const staticFieldInitializers = []
+		const fieldInitializers = []
+		let constructorDefn
+
+		const classBody = node.body
+
+		classBody.body = iterateList(classBody.body, (child, removeChild) => {
+			if (child.type === 'FieldDefinition') {
+				if (child.static) {
+					staticFieldInitializers.push(
+						objectProperty({
+							key: child.key,
+							computed: child.computed,
+							value: objectExpression([
+								objectProperty({
+									key: identifier('value'),
+									value: child.value,
+								}),
+								objectProperty({
+									key: identifier('writable'),
+									value: booleanLiteral(false),
+								}),
+							]),
+						}),
+					)
+				} else {
+					fieldInitializers.push(
+						expressionStatement(
+							assignmentExpression({
+								left: memberExpression({
+									object: thisExpression(),
+									property: child.key,
+									computed: child.computed,
+								}),
+								operator: '=',
+								right: child.value,
+							}),
+						),
+					)
+				}
+
+				removeChild()
+			} else if (child.type === 'MethodDefinition' && child.kind === 'constructor') {
+				constructorDefn = child
+			}
+		})
+
+		if (constructorDefn) {
+			if (classBody.parent.superClass) {
+				const firstStatement = constructorDefn.value.body.body[0]
+				if (
+					!firstStatement ||
+					firstStatement.type !== 'ExpressionStatement' ||
+					firstStatement.expression.type !== 'CallExpression' ||
+					firstStatement.expression.callee.type !== 'Super'
+				) {
+					throw Object.assign(new Error(`Unexpected ${firstStatement.type} in extended class, first line in constructor should be a call to super`), {
+						firstStatement,
+					})
+				}
+
+				constructorDefn.value.body.body.splice(1, 0, ...fieldInitializers)
+			} else {
+				fieldInitializers.forEach(init => {
+					constructorDefn.value.body.body.unshift(init)
+				})
+			}
+		} else if (fieldInitializers.length > 0) {
+			if (classBody.parent.superClass) {
+				fieldInitializers.unshift(
+					expressionStatement(
+						callExpression({
+							callee: superExpression(),
+						}),
+					),
+				)
+			}
+			classBody.body.push(
+				methodDefinition({
+					kind: 'constructor',
+					key: identifier('constructor'),
+					value: functionExpression({
+						body: blockStatement(fieldInitializers),
+					}),
+				}),
+			)
+		}
+
+		if (staticFieldInitializers.length > 0) {
+			const classExpr = callExpression({
+				callee: memberExpression({
+					object: identifier('Object'),
+					property: identifier('defineProperties'),
+				}),
+				args: [
+					node,
+					objectExpression(staticFieldInitializers),
+				],
+			})
+
+			if (node.type === 'ClassDeclaration') {
+				replaceNode(node, variableDeclaration({
+					kind: 'const',
+					declarations: [
+						variableDeclarator({
+							id: node.id,
+							init: classExpr,
+						}),
+					],
+				}))
+			} else {
+				replaceNode(node, classExpr)
+			}
+		}
+	},
+})
+
+const hasNoChildren = () => {}
+
+const traverseChildren = Object.freeze({
+	...acornWalk.base,
+
+	ClassDeclaration(node, _, visit) {
+		visit(node.body)
+	},
+	ClassBody(node, _, visit) {
+		for (const child of node.body) {
+			visit(child)
+		}
+	},
+	FieldDefinition: hasNoChildren,
 })
 
 export function transpileAst(ast) {
 	if (!ast) {
 		throw new Error(`A valid ast is required to transpile`)
 	}
-
-	const ancestors = []
-	const state = {
+	acornWalk.ancestor(ast, transpilers, traverseChildren, {
 		usesDefaultImports: false,
-	}
-	function visitNode(node) {
-		ancestors.push(node)
-
-		if (transpilers[node.type]) {
-			const enter = typeof transpilers[node.type] === 'function' ? transpilers[node.type] : transpilers[node.type].enter
-			const exit = typeof transpilers[node.type] === 'function' ? null : transpilers[node.type].exit
-
-			if (enter) {
-				enter({ node, state, ancestors })
-			}
-			acornWalk.base[node.type](node, null, visitNode)
-			if (exit) {
-				exit({ node, state, ancestors })
-			}
-		} else {
-			acornWalk.base[node.type](node, null, visitNode)
-		}
-
-		ancestors.pop()
-	}
-	visitNode(ast)
-
+	})
 	return ast
 }
