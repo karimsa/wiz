@@ -4,7 +4,8 @@
   "description": "All-in-one bundler, minifier, linter, and formatter.",
   "main": "wiz.dist.js",
   "scripts": {
-    "test": "jest"
+	"test": "jest",
+	"build": "echo TODO"
   },
   "repository": {
     "type": "git",
