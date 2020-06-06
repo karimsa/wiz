@@ -143,6 +143,7 @@ const generators = {
 			generators.FunctionParams(node.params),
 			') {\n',
 			body,
+			'\n',
 			state.indent,
 			'}\n',
 		])

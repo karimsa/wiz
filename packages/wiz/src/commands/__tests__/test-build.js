@@ -196,19 +196,16 @@ describe('Builder', () => {
 		})
 	})
 
-	describe('ES2015', () => {
+	describe('ESM Imports', () => {
 		it('should transpile a single named import', async () => {
 			await transpile(`
 				import { a } from 'b'
 				export const c = () => a
 			`, [
-				`function _interopDefaultImport(value) {`,
-				`	return (value.default || value);`,
-				`}`,
 				`const {`,
 				`	a: a,`,
-				`} = require("b")`,
-				`const c = exports.c = (() => a)`,
+				`} = require('b');`,
+				`const c = exports.c = (() => a);`,
 			].join('\n'))
 		})
 		it('should transpile multiple named imports', async () => {
@@ -216,19 +213,16 @@ describe('Builder', () => {
 				import { a, b, c } from 'b'
 				export const d = 1
 			`, [
-				`function _interopDefaultImport(value) {`,
-				`	return (value.default || value);`,
-				`}`,
 				`const {`,
 				`	a: a,`,
-				`} = require("b")`,
+				`} = require('b');`,
 				`const {`,
 				`	b: b,`,
-				`} = require("b")`,
+				`} = require('b');`,
 				`const {`,
 				`	c: c,`,
-				`} = require("b")`,
-				`const d = exports.d = 1`,
+				`} = require('b');`,
+				`const d = exports.d = 1;`,
 			].join('\n'))
 		})
 		it('should transpile default imports', async () => {
@@ -239,8 +233,9 @@ describe('Builder', () => {
 				`function _interopDefaultImport(value) {`,
 				`	return (value.default || value);`,
 				`}`,
-				`const a = _interopDefaultImport(require("b"))`,
-				`const d = exports.d = a`,
+				``,
+				`const a = _interopDefaultImport(require('b'));`,
+				`const d = exports.d = a;`,
 			].join('\n'))
 		})
 	})
