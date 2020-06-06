@@ -10,6 +10,19 @@ export const matchesRight = Object.assign(function(left: any, right: any) {
 		return left === right
 	}
 
+	if (Array.isArray(left)) {
+		if (left.length !== right.length) {
+			return false
+		}
+
+		for (let i = 0; i < left.length; i++) {
+			if (!matchesRight(left[i], right[i])) {
+				return false
+			}
+		}
+		return true
+	}
+
 	for (const key in right) {
 		if (right.hasOwnProperty(key) && !matchesRight(left[key], right[key])) {
 			return false

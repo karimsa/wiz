@@ -1,21 +1,22 @@
 import * as t from 'assert';
 import { parseScript } from '../../../src/meriyah';
+import { matchesRight } from '../../test-utils';
 
 describe('Miscellaneous - onToken', () => {
   it('tokenize braces using array', () => {
     const { tokens } = parseScript('{}', {
       loc: true
     });
-    t.deepEqual(tokens, [
+    matchesRight.assert(tokens, [
       {
         end: 1,
         start: 0,
-        token: 'Punctuator'
+        type: 'Punctuator'
       },
       {
         end: 2,
         start: 1,
-        token: 'Punctuator'
+        type: 'Punctuator'
       }
     ]);
   });
