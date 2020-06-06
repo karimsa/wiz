@@ -30,9 +30,6 @@ const generators = {
 	},
 
 	Literal(node) {
-		if (typeof node.value === 'number') {
-			return node.raw.replace(/_/g, '')
-		}
 		return node.raw
 	},
 

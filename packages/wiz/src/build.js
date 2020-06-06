@@ -366,6 +366,20 @@ const transpilers = Object.freeze({
 			}
 		}
 	},
+	Literal(node) {
+		if (typeof node.value === 'number') {
+			node.raw = node.raw.replace(/_/g, '')
+		} else if (typeof node.value === 'string') {
+			// Source: babel-plugin-proposal-json-strings
+			node.raw = node.raw.replace(/(\\*)([\u2028\u2029])/g, (match, escapes, separator) => {
+				if (escapes.length % 2 === 1) {
+					return match
+				}
+
+				return `${escapes}\\u${separator.charCodeAt(0).toString(16)}`
+			})
+		}
+	},
 })
 
 const hasNoChildren = () => {}

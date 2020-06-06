@@ -20,6 +20,14 @@ describe('Builder', () => {
 		})
 	})
 
+	// Added in Node v10.x
+	describe('proposal-json-strings', () => {
+		it('should expand UTF-8 chars', async () => {
+			await transpile(`"before\u2028after"`, `'before\\u2028after';`)
+			await transpile(`"before\u2029after"`, `'before\\u2029after';`)
+		})
+	})
+
 	// Not added to Node LTS
 	describe('proposal-class-properties', () => {
 		it('should transpile instance props (no constructor)', async () => {
