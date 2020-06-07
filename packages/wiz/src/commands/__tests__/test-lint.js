@@ -5,6 +5,7 @@ describe('Linter', () => {
 	it('should format files automatically', async () => {
 		const { text, summary, dirty } = await lintFileNode({
 			linter,
+			fix: true,
 			node: createVirtualNode({
 				text: `export function f(a){let b=a;return b}`,
 			}),

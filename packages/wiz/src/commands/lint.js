@@ -20,7 +20,7 @@ export function createLinter(options) {
     return linter
 }
 
-export async function lintFileNode({ node, linter }) {
+export async function lintFileNode({ node, linter, fix }) {
 	let { text, ast } = await node.parseSource()
 	let dirty = false
 
@@ -36,7 +36,7 @@ export async function lintFileNode({ node, linter }) {
     const { fixed, output, messages } = linter.verifyAndFix(text, eslintConfig, {
         allowInlineConfig: false,
         filename: node.basename,
-        fix: !isCI,
+        fix: fix || !isCI,
         reportUnusedDisableDirectives: true,
 	})
 
