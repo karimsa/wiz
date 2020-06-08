@@ -4,8 +4,8 @@
   "description": "All-in-one bundler, minifier, linter, and formatter.",
   "main": "wiz.dist.js",
   "scripts": {
-	"test": "jest",
-	"build": "echo TODO"
+    "test": "jest",
+    "build": "echo TODO"
   },
   "repository": {
     "type": "git",
@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@babel/cli": "^7.8.4",
+    "@babel/compat-data": "^7.10.1",
     "@babel/core": "^7.10.1",
     "@babel/preset-env": "^7.10.1",
     "@babel/register": "^7.10.1",
