@@ -1,5 +1,5 @@
 import { Chars } from '../chars'
-import { Token } from '../token'
+import { Token, PunctuatorValueLookup } from '../token'
 import { ParserState, Context, Flags, TokenEmitType } from '../common'
 import { report, Errors } from '../errors'
 import { unicodeLookup } from '../unicode'
@@ -184,23 +184,28 @@ export function nextToken(parser: ParserState, context: Context): void {
 	parser.startLine = parser.line
 	parser.token = scanSingleToken(parser, context, LexerState.None)
 	if (parser.token !== Token.EOF) {
+		const type = convertTokenType(parser.token)
+		let value = parser.tokenValue
+		if (type === 'Punctuator') {
+			value = PunctuatorValueLookup[parser.token]
+		}
 		const token: TokenEmitType = {
-			type: convertTokenType(parser.token),
-			value: parser.tokenValue,
+			type,
+			value,
 			start: parser.tokenPos,
 			end: parser.index,
 			loc: {
 				source: null,
 				start: {
-					line: parser.tokenPos,
-					column: parser.index,
-				},
-				end: {
 					line: parser.startLine,
 					column: parser.startColumn,
 				},
+				end: {
+					line: parser.line,
+					column: parser.column,
+				},
 			},
-			range: [parser.tokenPos, parser.startPos],
+			range: [parser.tokenPos, parser.index],
 		}
 		if (parser.sourceFile) {
 			token.loc.source = parser.sourceFile

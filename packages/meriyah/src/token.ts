@@ -196,6 +196,79 @@ export const enum Token {
   JSXText           = 135,
 }
 
+// Maps token types to their text operator for generating
+// tokens correctly
+export const PunctuatorValueLookup = {
+	/* Punctuators */
+	[Token.Arrow]: `=>`,
+	[Token.LeftParen]: `(`,
+	[Token.LeftBrace]: `{`,
+	[Token.Period]: `.`,
+	[Token.Ellipsis]: `...`,
+	[Token.RightBrace]: `}`,
+	[Token.RightParen]: `)`,
+	[Token.Semicolon]: `;`,
+	[Token.Comma]: `,`,
+	[Token.LeftBracket]  : `[`,
+	[Token.RightBracket] :`]`,
+	[Token.Colon]        :`:`,
+	[Token.QuestionMark] :`?`,
+	[Token.SingleQuote]  :`'`,
+	[Token.DoubleQuote]  :`"`,
+	[Token.JSXClose]     :`</`,
+	[Token.JSXAutoClose] :`/>`,
+  
+	/* Update operators */
+	[Token.Increment]: `++`,
+	[Token.Decrement]: `--`,
+  
+	/* Assign operators */
+	[Token.Assign                 ] : `=`,
+	[Token.ShiftLeftAssign        ] :`<<=`,
+	[Token.ShiftRightAssign       ] :`>>=`,
+	[Token.LogicalShiftRightAssign] : `>>>=`,
+	[Token.ExponentiateAssign     ] :`**=`,
+	[Token.AddAssign              ] : `+=`,
+	[Token.SubtractAssign         ] : `-=`,
+	[Token.MultiplyAssign         ] : `*=`,
+	[Token.DivideAssign           ] : `/=`,
+	[Token.ModuloAssign           ] : `%=`,
+	[Token.BitwiseXorAssign       ] : `^=`,
+	[Token.BitwiseOrAssign        ] : `|=`,
+	[Token.BitwiseAndAssign       ] : `&=`,
+  
+	/* Unary/binary operators */
+	[Token.Negate            ] : `!`,
+	[Token.Complement        ] : `~`,
+	[Token.Add               ] : `+`,
+	[Token.Subtract          ] : `-`,
+	[Token.Multiply          ] : `*`,
+	[Token.Modulo            ] : `%`,
+	[Token.Divide            ] : `/`,
+	[Token.Exponentiate       ]: `**`,
+	[Token.LogicalAnd         ]: `&&`,
+	[Token.LogicalOr          ]: `||`,
+	[Token.StrictEqual        ]: `===`,
+	[Token.StrictNotEqual     ]: `!==`,
+	[Token.LooseEqual         ]: `==`,
+	[Token.LooseNotEqual      ]: `!=`,
+	[Token.LessThanOrEqual    ]: `<=`,
+	[Token.GreaterThanOrEqual ]: `>=`,
+	[Token.LessThan       ]: `<`,
+	[Token.GreaterThan    ]: `>`,
+	[Token.ShiftLeft          ]:`<<`,
+	[Token.ShiftRight         ]:`>>`,
+	[Token.LogicalShiftRight]  : `>>>`,
+	[Token.BitwiseAnd        ]: `&`,
+	[Token.BitwiseOr         ]: `|`,
+	[Token.BitwiseXor        ]: `^`,
+
+	// Stage #3 proposals
+	[Token.PrivateName       ]: `#`,
+	[Token.Coalesce          ]: `??`,
+	[Token.QuestionMarkPeriod]: `?.`,
+}
+
 export const KeywordDescTable = [
   'end of source',
 
