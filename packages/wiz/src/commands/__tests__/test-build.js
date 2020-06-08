@@ -6,6 +6,9 @@ async function transpile(input, expected) {
 			text: input,
 		}),
 	})
+	if (!expected) {
+		return text
+	}
 	expect(text).toEqual(expected)
 }
 
@@ -23,8 +26,8 @@ describe('Builder', () => {
 	// Added in Node v10.x
 	describe('proposal-json-strings', () => {
 		it('should expand UTF-8 chars', async () => {
-			await transpile(`"before\u2028after"`, `'before\\u2028after';`)
-			await transpile(`"before\u2029after"`, `'before\\u2029after';`)
+			await expect(transpile(`let _ = "before\u2028after"`)).resolves.toMatch(/\\u2028/)
+			await expect(transpile(`let _ = "before\u2029after"`)).resolves.toMatch(/\\u2029/)
 		})
 	})
 
