@@ -7,15 +7,15 @@ describe('Linter', () => {
 			linter,
 			fix: true,
 			node: createVirtualNode({
-				text: `export function f(a){let b=a;return b}`,
+				text: `export function f({a,b}){let c=a*b;return c}`,
 			}),
 		})
 		expect(summary.messages).toHaveLength(0)
 		expect(dirty).toBe(true)
 		expect(text).toEqual([
-			'export function f(a) {',
-			'	let b = a',
-			'	return b',
+			'export function f({ a, b }) {',
+			'	let c = a * b',
+			'	return c',
 			'}',
 			'',
 		].join('\n'))

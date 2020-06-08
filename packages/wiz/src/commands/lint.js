@@ -33,41 +33,54 @@ export async function lintFileNode({ node, linter, fix }) {
 
 		return ast
 	}
-    const { fixed, output, messages } = linter.verifyAndFix(text, eslintConfig, {
-        allowInlineConfig: false,
-        filename: node.basename,
-        fix: fix || !isCI,
-        reportUnusedDisableDirectives: true,
-	})
 
-	const summary = {
-		messages,
-		filePath: node.relpath,
-		errorCount: 0,
-		warningCount: 0,
-		fixableErrorCount: 0,
-		fixableWarningCount: 0,
-	}
-	for (const msg of messages) {
-		if (msg.fatal || msg.severity === 2) {
-			summary.errorCount++
-			if (msg.fix) {
-				summary.fixableErrorCount++
-			}
-		} else {
-			summary.warningCount++
-			if (msg.fix) {
-				summary.fixableWarningCount++
+	try {
+		const { fixed, output, messages } = linter.verifyAndFix(text, eslintConfig, {
+			allowInlineConfig: false,
+			filename: node.basename,
+			fix: fix || !isCI,
+			reportUnusedDisableDirectives: true,
+		})
+
+		const summary = {
+			messages,
+			filePath: node.relpath,
+			errorCount: 0,
+			warningCount: 0,
+			fixableErrorCount: 0,
+			fixableWarningCount: 0,
+		}
+		for (const msg of messages) {
+			if (msg.fatal || msg.severity === 2) {
+				summary.errorCount++
+				if (msg.fix) {
+					summary.fixableErrorCount++
+				}
+			} else {
+				summary.warningCount++
+				if (msg.fix) {
+					summary.fixableWarningCount++
+				}
 			}
 		}
-	}
 
-	return {
-		dirty: dirty || fixed,
-		output,
-		summary,
-		text,
-		ast,
+		return {
+			dirty: dirty || fixed,
+			output,
+			summary,
+			text,
+			ast,
+		}
+	} catch (error) {
+		if (error.currentNode) {
+			console.warn({
+				node,
+				currentNode: error.currentNode,
+				ast,
+				tokens: ast.tokens,
+			})
+		}
+		throw error
 	}
 }
 
