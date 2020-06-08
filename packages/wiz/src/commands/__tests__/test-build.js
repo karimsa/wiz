@@ -22,16 +22,6 @@ describe('Builder', () => {
 			await transpile('0o0_6_6_6', '0o0666;')
 		})
 	})
-
-	// Added in Node v10.x
-	describe('proposal-json-strings', () => {
-		it('should expand UTF-8 chars', async () => {
-			await expect(transpile(`let _ = "before\u2028after"`)).resolves.toMatch(/\\u2028/)
-			await expect(transpile(`let _ = "before\u2029after"`)).resolves.toMatch(/\\u2029/)
-		})
-	})
-
-	// Not added to Node LTS
 	describe('proposal-class-properties', () => {
 		it('should transpile instance props (no constructor)', async () => {
 			await transpile(
